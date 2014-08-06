@@ -45,9 +45,9 @@ public class ConflationToggleDialog extends ToggleDialog
     public final static String PREF_PREFIX = "conflation";
     JTabbedPane tabbedPane;
     JTable matchTable;
-    UnmatchedJList referenceOnlyList;
+    JList referenceOnlyList;
     UnmatchedObjectListModel referenceOnlyListModel;
-    UnmatchedJList subjectOnlyList;
+    JList subjectOnlyList;
     UnmatchedObjectListModel subjectOnlyListModel;
     ConflationLayer conflationLayer;
     SimpleMatchesTableModel matchTableModel;
@@ -99,13 +99,13 @@ public class ConflationToggleDialog extends ToggleDialog
         matchTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         referenceOnlyListModel = new UnmatchedObjectListModel();
-        referenceOnlyList = new UnmatchedJList(referenceOnlyListModel);
+        referenceOnlyList = new JList(referenceOnlyListModel);
         referenceOnlyList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         referenceOnlyList.setCellRenderer(new OsmPrimitivRenderer());
         referenceOnlyList.setTransferHandler(null); // no drag & drop
 
         subjectOnlyListModel = new UnmatchedObjectListModel();
-        subjectOnlyList = new UnmatchedJList(subjectOnlyListModel);
+        subjectOnlyList = new JList(subjectOnlyListModel);
         subjectOnlyList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         subjectOnlyList.setCellRenderer(new OsmPrimitivRenderer());
         subjectOnlyList.setTransferHandler(null); // no drag & drop
@@ -295,22 +295,6 @@ public class ConflationToggleDialog extends ToggleDialog
             }
         }
         return selMatches;
-    }
-
-    private class UnmatchedJList<E> extends JList {
-
-        public UnmatchedJList(ListModel listModel) {
-            super(listModel);
-        }
-
-        // TODO: remove this once JOSM uses Java 1.7
-        public List<E> getSelectedValuesList() {
-            List<E> list = new ArrayList<E>();
-            for (Object o : getSelectedValues()) {
-                list.add((E)o);
-            }
-            return list;
-        }
     }
 
     protected static class ConflateMenuItem extends JMenuItem implements ActionListener {
@@ -704,10 +688,10 @@ public class ConflationToggleDialog extends ToggleDialog
                     matchTable.getSelectionModel().addSelectionInterval(row, row);
                 }
                 else if (c == subjectOnlyList || c == referenceOnlyList) {
-                    int idx = ((UnmatchedJList)c).locationToIndex(evt.getPoint());
+                    int idx = ((JList)c).locationToIndex(evt.getPoint());
                     if (idx < 0)
                         return;
-                    ((UnmatchedJList)c).setSelectedIndex(idx);
+                    ((JList)c).setSelectedIndex(idx);
                 }
             }
             

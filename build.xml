@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="josm-conflation-plugin" default="dist" basedir=".">
 
-    <property name="ant.build.javac.target" value="1.6"/>
-    <property name="ant.build.javac.source" value="1.6"/>
+    <property name="ant.build.javac.target" value="1.7"/>
+    <property name="ant.build.javac.source" value="1.7"/>
 
     <property name="plugin.build.dir" value="build" />
     <property name="plugin.src.dir" value="src" />
-    <property name="plugin.dist.dir" value="dist" />
+    <property name="plugin.dist.dir" value="../../dist" />
     <property name="plugin.jar" value="${plugin.dist.dir}/conflation.jar" />
-    <property name="jts.plugin.jar" location="../../dist/jts.jar"/>  
-    <property name="utilsplugin2.plugin.jar" location="../../dist/utilsplugin2.jar"/>
-
+    <property name="jts.plugin.jar" location="${plugin.dist.dir}/jts.jar"/>  
+    <property name="utilsplugin2.plugin.jar" location="${plugin.dist.dir}/utilsplugin2.jar"/>
 	
     <target name="init">
         <available file="build.properties" property="build.properties.present" />
@@ -31,8 +30,6 @@
         </path>
 		
         <mkdir dir="${plugin.build.dir}" />
-        <mkdir dir="${plugin.dist.dir}" />
-	
     </target>
 
     <target name="compile" depends="init">
@@ -82,7 +79,6 @@
 
     <target name="clean" description="Clean the build environment">
         <delete dir="${plugin.build.dir}" />
-        <delete dir="${plugin.dist.dir}" />
     </target>
 
     <target name="osm-svn-install" depends="">
