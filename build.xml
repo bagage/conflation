@@ -8,7 +8,7 @@
     <property name="plugin.src.dir" value="src" />
     <property name="plugin.dist.dir" value="../../dist" />
     <property name="plugin.jar" value="${plugin.dist.dir}/conflation.jar" />
-    <property name="josm.jar" location="../../core/dist/josm-custom.jar"/>
+    <property name="josm" location="../../core/dist/josm-custom.jar"/>
     <property name="jts.plugin.jar" location="${plugin.dist.dir}/jts.jar"/>  
     <property name="utilsplugin2.plugin.jar" location="${plugin.dist.dir}/utilsplugin2.jar"/>
 	
@@ -22,7 +22,7 @@
         <property file="build.properties" />
 		
         <path id="compile.path">
-            <pathelement location="${josm.jar}" />
+            <pathelement location="${josm}" />
             <pathelement location="${jts.plugin.jar}"/>
             <pathelement location="${utilsplugin2.plugin.jar}"/>
             <fileset dir="lib">
@@ -35,8 +35,10 @@
 
     <target name="compile" depends="init">
         <echo message="compiling sources for  ${plugin.jar} ... " />
+        <echo>Classpath includes ${josm}</echo>
         <echo>Classpath includes ${jts.plugin.jar}</echo>
-        <javac srcdir="src" classpathref="compile.path" debug="true" destdir="${plugin.build.dir}">
+        <echo>Classpath includes ${utilsplugin2.plugin.jar}</echo>
+        <javac srcdir="src" classpathref="compile.path" debug="true" destdir="${plugin.build.dir}" includeantruntime="false" encoding="UTF-8">
             <compilerarg value="-Xlint:deprecation" />
             <compilerarg value="-Xlint:unchecked" />
         </javac>
