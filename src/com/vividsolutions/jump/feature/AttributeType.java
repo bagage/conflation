@@ -37,8 +37,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.PrecisionModel;
 
 
 /**

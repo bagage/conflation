@@ -106,7 +106,7 @@ public class ConflateMatchCommand extends Command {
         if (replaceCommand == null)
             return null;
 
-        Collection<PseudoCommand> children = new ArrayList<PseudoCommand>();
+        Collection<PseudoCommand> children = new ArrayList<>();
         if (addPrimitivesCommand != null)
             children.add(addPrimitivesCommand);
         children.addAll(replaceCommand.getChildren());

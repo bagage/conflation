@@ -34,14 +34,14 @@
 
 package com.vividsolutions.jcs.conflate.polygonmatch;
 
-import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jump.feature.Feature;
-import com.vividsolutions.jump.feature.FeatureCollection;
-import com.vividsolutions.jump.feature.IndexedFeatureCollection;
-import com.vividsolutions.jump.task.TaskMonitor;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import com.vividsolutions.jts.util.Assert;
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.feature.FeatureCollection;
+import com.vividsolutions.jump.task.TaskMonitor;
 
 /**
  * Enforces a one-to-one relationship between target features and

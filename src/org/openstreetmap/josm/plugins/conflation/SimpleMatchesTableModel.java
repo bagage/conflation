@@ -52,7 +52,7 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
         } else if (col == 3) {
             return c.getScore();
         } else if (col == 4) {
-            HashSet<OsmPrimitive> set = new HashSet<OsmPrimitive>();
+            HashSet<OsmPrimitive> set = new HashSet<>();
             set.add(c.getReferenceObject());
             set.add(c.getSubjectObject());
             TagCollection tags = TagCollection.unionOfAllPrimitives(set);

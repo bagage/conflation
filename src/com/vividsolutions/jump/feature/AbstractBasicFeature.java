@@ -1,7 +1,5 @@
 package com.vividsolutions.jump.feature;
 
-import java.util.*;
-
 import com.vividsolutions.jts.geom.Geometry;
 
 /**

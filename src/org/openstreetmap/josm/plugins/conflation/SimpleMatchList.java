@@ -9,14 +9,14 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  *  Holds a list of {@see Match}es and provides convenience functions.
  */
 public class SimpleMatchList implements Iterable<SimpleMatch> {
-    private CopyOnWriteArrayList<SimpleMatchListListener> listeners = new CopyOnWriteArrayList<SimpleMatchListListener>();
+    private CopyOnWriteArrayList<SimpleMatchListListener> listeners = new CopyOnWriteArrayList<>();
 
     List<SimpleMatch> matches;
     Collection<SimpleMatch> selected;
 
     public SimpleMatchList() {
-        matches = new LinkedList<SimpleMatch>();
-        selected = new ArrayList<SimpleMatch>();
+        matches = new LinkedList<>();
+        selected = new ArrayList<>();
     }
 
     public boolean hasMatch(SimpleMatch c) {

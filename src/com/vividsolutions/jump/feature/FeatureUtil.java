@@ -6,8 +6,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import com.vividsolutions.jts.geom.Geometry;
-
 public class FeatureUtil {
 	
 	/**

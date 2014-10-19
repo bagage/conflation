@@ -91,12 +91,9 @@ public class IndexedFeatureCollection extends FeatureCollectionWrapper {
     }
 
     private void createIndex() {
-        int count = 0; // debugging
-
         for (Iterator i = iterator(); i.hasNext();) {
             Feature f = (Feature) i.next();
             spatialIndex.insert(f.getGeometry().getEnvelopeInternal(), f);
-            count++;
         }
     }
 

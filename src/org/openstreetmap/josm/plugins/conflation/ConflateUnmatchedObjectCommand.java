@@ -72,7 +72,7 @@ public class ConflateUnmatchedObjectCommand extends Command {
 
     @Override
     public Collection<PseudoCommand> getChildren() {
-        Collection<PseudoCommand> children = new ArrayList<PseudoCommand>();
+        Collection<PseudoCommand> children = new ArrayList<>();
         children.add(addPrimitivesCommand);
         return children;
     }

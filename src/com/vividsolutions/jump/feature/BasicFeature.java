@@ -33,11 +33,6 @@
 
 package com.vividsolutions.jump.feature;
 
-import java.util.*;
-
-import com.vividsolutions.jts.geom.Geometry;
-
-
 /**
  *  A geographic feature, defined in the OGC Abstract Specification to be "an
  *  abstraction of a real world phenomenon; it is a geographic feature if it is

@@ -202,7 +202,7 @@ public class ConflationToggleDialog extends ToggleDialog
     }
 
     private List<OsmPrimitive> getSelectedReferencePrimitives() {
-        List<OsmPrimitive> selection = new ArrayList<OsmPrimitive>();
+        List<OsmPrimitive> selection = new ArrayList<>();
         if (tabbedPane == null || tabbedPane.getSelectedComponent() == null)
             return selection;
         
@@ -217,7 +217,7 @@ public class ConflationToggleDialog extends ToggleDialog
     }
 
     private List<OsmPrimitive> getSelectedSubjectPrimitives() {
-        List<OsmPrimitive> selection = new ArrayList<OsmPrimitive>();
+        List<OsmPrimitive> selection = new ArrayList<>();
         if (tabbedPane == null || tabbedPane.getSelectedComponent() == null)
             return selection;
 
@@ -232,7 +232,7 @@ public class ConflationToggleDialog extends ToggleDialog
     }
 
     private Collection<OsmPrimitive> getAllSelectedPrimitives() {
-        Collection<OsmPrimitive> allSelected = new HashSet<OsmPrimitive>();
+        Collection<OsmPrimitive> allSelected = new HashSet<>();
         allSelected.addAll(getSelectedReferencePrimitives());
         allSelected.addAll(getSelectedSubjectPrimitives());
         return allSelected;
@@ -288,7 +288,7 @@ public class ConflationToggleDialog extends ToggleDialog
 
     private Collection<SimpleMatch> getSelectedFromTable() {
         ListSelectionModel lsm = matchTable.getSelectionModel();
-        Collection<SimpleMatch> selMatches = new HashSet<SimpleMatch>();
+        Collection<SimpleMatch> selMatches = new HashSet<>();
         for (int i = lsm.getMinSelectionIndex(); i <= lsm.getMaxSelectionIndex(); i++) {
             if (lsm.isSelectedIndex(i) && i < matches.size()) {
                 selMatches.add(matches.get(i));
@@ -543,7 +543,7 @@ public class ConflationToggleDialog extends ToggleDialog
 
         private void conflateMatchActionPerformed() {
             SimpleMatch nextSelection = matches.findNextSelection();
-            List<Command> cmds = new LinkedList<Command>();
+            List<Command> cmds = new LinkedList<>();
             try {
                 // iterate over selected matches in reverse order since they will be removed as we go
                 List<SimpleMatch> selMatches = new ArrayList(matches.getSelected());
@@ -768,7 +768,7 @@ public class ConflationToggleDialog extends ToggleDialog
      * @return 
      */
     private FeatureSchema createSchema(Collection<OsmPrimitive> prims) {
-        Set<String> keys = new HashSet<String>();
+        Set<String> keys = new HashSet<>();
         for (OsmPrimitive prim : prims) {
             keys.addAll(prim.getKeys().keySet());
         }
@@ -827,7 +827,7 @@ public class ConflationToggleDialog extends ToggleDialog
         monitor.beginTask("Generating matches");
         
         // create Features and collections from primitive selections
-        Set<OsmPrimitive> allPrimitives = new HashSet<OsmPrimitive>();
+        Set<OsmPrimitive> allPrimitives = new HashSet<>();
         allPrimitives.addAll(settings.getReferenceSelection());
         allPrimitives.addAll(settings.getSubjectSelection());
         FeatureCollection allFeatures = createFeatureCollection(allPrimitives);
@@ -880,8 +880,8 @@ public class ConflationToggleDialog extends ToggleDialog
         matches = generateMatches(settings);
 
         // populate unmatched objects
-        List<OsmPrimitive> referenceOnly = new ArrayList<OsmPrimitive>(settings.getReferenceSelection());
-        List<OsmPrimitive> subjectOnly = new ArrayList<OsmPrimitive>(settings.getSubjectSelection());
+        List<OsmPrimitive> referenceOnly = new ArrayList<>(settings.getReferenceSelection());
+        List<OsmPrimitive> subjectOnly = new ArrayList<>(settings.getSubjectSelection());
         for (SimpleMatch match : matches) {
             referenceOnly.remove(match.getReferenceObject());
             subjectOnly.remove(match.getSubjectObject());

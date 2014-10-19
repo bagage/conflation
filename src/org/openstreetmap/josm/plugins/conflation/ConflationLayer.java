@@ -46,7 +46,6 @@ public class ConflationLayer extends Layer implements LayerChangeListener {
     /**
      * Draw symbols connecting matched primitives.
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void paint(final Graphics2D g, final MapView mv, Bounds bounds) {
         Graphics2D g2 = g;

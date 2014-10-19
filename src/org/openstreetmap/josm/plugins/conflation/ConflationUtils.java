@@ -34,7 +34,7 @@ public final class ConflationUtils {
         //restore selection
         sourceDataSet.setSelected(origSelection);
 
-        List<PrimitiveData> newObjects = new ArrayList<PrimitiveData>();
+        List<PrimitiveData> newObjects = new ArrayList<>();
         for (OsmPrimitive p : newDataSet.allPrimitives()) {
             newObjects.add(p.save());
         }

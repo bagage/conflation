@@ -43,8 +43,8 @@ public class SettingsDialog extends ExtendedDialog {
                 tr("Configure conflation settings"),
                 new String[]{tr("Generate matches"), tr("Cancel")},
                 false);
-        referenceSelection = new ArrayList<OsmPrimitive>();
-        subjectSelection = new ArrayList<OsmPrimitive>();
+        referenceSelection = new ArrayList<>();
+        subjectSelection = new ArrayList<>();
         initComponents();
     }
 

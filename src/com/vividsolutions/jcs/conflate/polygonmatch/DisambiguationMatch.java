@@ -1,12 +1,12 @@
 package com.vividsolutions.jcs.conflate.polygonmatch;
 
-import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jump.feature.Feature;
-import com.vividsolutions.jump.task.TaskMonitor;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.task.TaskMonitor;
 
 class DisambiguationMatch implements Comparable {
     private Feature target;
