@@ -28,7 +28,6 @@ import org.openstreetmap.josm.gui.layer.Layer;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.progress.PleaseWaitProgressMonitor;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
-import org.openstreetmap.josm.plugins.conflation.ConflateMatchCommand.UserCancelException;
 import org.openstreetmap.josm.plugins.jts.JTSConverter;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryException;
 import static org.openstreetmap.josm.tools.I18n.marktr;
@@ -36,6 +35,7 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
+import org.openstreetmap.josm.tools.UserCancelException;
 
 public class ConflationToggleDialog extends ToggleDialog
         implements EditLayerChangeListener, SelectionChangedListener, DataSetListener,
@@ -45,9 +45,9 @@ public class ConflationToggleDialog extends ToggleDialog
     public final static String PREF_PREFIX = "conflation";
     JTabbedPane tabbedPane;
     JTable matchTable;
-    JList referenceOnlyList;
+    JList<OsmPrimitive> referenceOnlyList;
     UnmatchedObjectListModel referenceOnlyListModel;
-    JList subjectOnlyList;
+    JList<OsmPrimitive> subjectOnlyList;
     UnmatchedObjectListModel subjectOnlyListModel;
     ConflationLayer conflationLayer;
     SimpleMatchesTableModel matchTableModel;
@@ -99,13 +99,13 @@ public class ConflationToggleDialog extends ToggleDialog
         matchTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         referenceOnlyListModel = new UnmatchedObjectListModel();
-        referenceOnlyList = new JList(referenceOnlyListModel);
+        referenceOnlyList = new JList<>(referenceOnlyListModel);
         referenceOnlyList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         referenceOnlyList.setCellRenderer(new OsmPrimitivRenderer());
         referenceOnlyList.setTransferHandler(null); // no drag & drop
 
         subjectOnlyListModel = new UnmatchedObjectListModel();
-        subjectOnlyList = new JList(subjectOnlyListModel);
+        subjectOnlyList = new JList<>(subjectOnlyListModel);
         subjectOnlyList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         subjectOnlyList.setCellRenderer(new OsmPrimitivRenderer());
         subjectOnlyList.setTransferHandler(null); // no drag & drop
@@ -368,7 +368,7 @@ public class ConflationToggleDialog extends ToggleDialog
     static public class LayerListCellRenderer extends DefaultListCellRenderer {
 
         @Override
-        public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected,
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
                 boolean cellHasFocus) {
             Layer layer = (Layer) value;
             JLabel label = (JLabel) super.getListCellRendererComponent(list, layer.getName(), index, isSelected,
@@ -546,7 +546,7 @@ public class ConflationToggleDialog extends ToggleDialog
             List<Command> cmds = new LinkedList<>();
             try {
                 // iterate over selected matches in reverse order since they will be removed as we go
-                List<SimpleMatch> selMatches = new ArrayList(matches.getSelected());
+                List<SimpleMatch> selMatches = new ArrayList<>(matches.getSelected());
                 for (SimpleMatch c : selMatches) {
 
                     ConflateMatchCommand conflateCommand;
@@ -688,10 +688,10 @@ public class ConflationToggleDialog extends ToggleDialog
                     matchTable.getSelectionModel().addSelectionInterval(row, row);
                 }
                 else if (c == subjectOnlyList || c == referenceOnlyList) {
-                    int idx = ((JList)c).locationToIndex(evt.getPoint());
+                    int idx = ((JList<?>)c).locationToIndex(evt.getPoint());
                     if (idx < 0)
                         return;
-                    ((JList)c).setSelectedIndex(idx);
+                    ((JList<?>)c).setSelectedIndex(idx);
                 }
             }
             
@@ -857,7 +857,8 @@ public class ConflationToggleDialog extends ToggleDialog
         // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
         // FIXME: fix match functions to work on point/linestring features as well
         // find matches
-        Map<OsmFeature, Matches> map = finder.match(refColl, subColl, monitor);
+        @SuppressWarnings("unchecked")
+		Map<OsmFeature, Matches> map = finder.match(refColl, subColl, monitor);
         
         monitor.subTask("Finishing match list");
         

@@ -8,7 +8,7 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 
 
 public class MatchFinderPanel extends JPanel {
-    private JComboBox matchFinderComboBox;
+    private JComboBox<String> matchFinderComboBox;
     private CentroidDistanceComponent centroidDistanceComponent;
 
     public MatchFinderPanel() {
@@ -16,7 +16,7 @@ public class MatchFinderPanel extends JPanel {
         setBorder(BorderFactory.createTitledBorder(tr("Match finder settings")));
 
         String[] matchFinderStrings = {"DisambiguatingFCMatchFinder", "OneToOneFCMatchFinder" };
-        matchFinderComboBox = new JComboBox(matchFinderStrings);
+        matchFinderComboBox = new JComboBox<>(matchFinderStrings);
         matchFinderComboBox.setSelectedIndex(0);
         JPanel comboboxPanel = new JPanel();
         comboboxPanel.setBorder(BorderFactory.createTitledBorder(tr("Match finder method")));

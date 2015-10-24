@@ -15,6 +15,7 @@ import org.openstreetmap.josm.data.osm.PrimitiveData;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryUtils;
 import static org.openstreetmap.josm.tools.I18n.tr;
 import org.openstreetmap.josm.tools.ImageProvider;
+import org.openstreetmap.josm.tools.UserCancelException;
 
 /**
  * Command to conflate one object with another.
@@ -54,9 +55,6 @@ public class ConflateMatchCommand extends Command {
         if (replaceCommand == null) {
             throw new UserCancelException();
         }
-    }
-
-    public class UserCancelException extends Exception {
     }
 
     @Override

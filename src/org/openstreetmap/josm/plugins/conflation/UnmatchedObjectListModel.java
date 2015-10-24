@@ -9,7 +9,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  * List model for unmatched objects, for both subject and reference layers.
  * @author joshdoe
  */
-public class UnmatchedObjectListModel extends DefaultListModel {
+public class UnmatchedObjectListModel extends DefaultListModel<OsmPrimitive> {
 
     void addAll(Collection<OsmPrimitive> objects) {
         for (OsmPrimitive p : objects) {
@@ -24,5 +24,4 @@ public class UnmatchedObjectListModel extends DefaultListModel {
         }
         return changed;
     }
-
 }
