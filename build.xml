@@ -84,7 +84,7 @@
         <delete dir="${plugin.build.dir}" />
     </target>
 
-    <target name="osm-svn-install" depends="">
+    <target name="osm-svn-install" depends="dist">
         <echo>Installing the plugin in ${local.osm.svn.path}</echo>
         <copy file="${plugin.jar}" todir="${local.osm.svn.path}" />
     </target>
