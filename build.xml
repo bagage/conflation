@@ -65,7 +65,7 @@
             <zipfileset src="lib/miglayout-4.0-swing.jar"/>
         </copy>
 
-        <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}">
+        <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}" manifestencoding="UTF-8">
             <manifest>
                 <attribute name="Author" value="Josh Doe" />
                 <attribute name="Plugin-Class" value="org.openstreetmap.josm.plugins.conflation.ConflationPlugin" />
