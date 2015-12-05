@@ -905,16 +905,13 @@ public class ConflationToggleDialog extends ToggleDialog
         // add conflation layer
         try {
             if (conflationLayer == null) {
-                conflationLayer = new ConflationLayer();
+                conflationLayer = new ConflationLayer(matches);
                 Main.main.addLayer(conflationLayer);
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
         }
-        conflationLayer.setMatches(matches);
 //        matches.addConflationListChangedListener(conflationLayer);
-
-                
     }
 
     class UnmatchedListDataListener implements ListDataListener {
