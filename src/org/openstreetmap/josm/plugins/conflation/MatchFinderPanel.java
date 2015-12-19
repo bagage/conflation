@@ -5,6 +5,7 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 import java.awt.Dimension;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -39,10 +40,14 @@ public class MatchFinderPanel extends JPanel {
         matchFinderComboBox.setSelectedIndex(0);
         JPanel comboboxPanel = new JPanel();
         comboboxPanel.setBorder(BorderFactory.createTitledBorder(tr("Match finder method")));
+        comboboxPanel.setAlignmentX(LEFT_ALIGNMENT);
         comboboxPanel.add(matchFinderComboBox);
         add(comboboxPanel);
 
+        add(Box.createRigidArea(new Dimension(0, 10)));
+
         centroidDistanceComponent = new CentroidDistanceComponent();
+        centroidDistanceComponent.setAlignmentX(LEFT_ALIGNMENT);
         add(centroidDistanceComponent);
     }
 

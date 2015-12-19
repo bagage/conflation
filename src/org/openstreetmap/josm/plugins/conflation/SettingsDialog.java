@@ -3,16 +3,19 @@ package org.openstreetmap.josm.plugins.conflation;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.border.CompoundBorder;
 
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.JosmAction;
@@ -67,44 +70,80 @@ public class SettingsDialog extends ExtendedDialog {
         referencePanel = new JPanel();
         referenceLayerLabel = new JLabel();
         referenceSelectionLabel = new JLabel();
+
         jPanel3 = new JPanel();
         restoreReferenceButton = new JButton(new RestoreReferenceAction());
         freezeReferenceButton = new JButton(new FreezeReferenceAction());
+
         subjectPanel = new JPanel();
         subjectLayerLabel = new JLabel();
         subjectSelectionLabel = new JLabel();
+
         jPanel5 = new JPanel();
         restoreSubjectButton = new JButton(new RestoreSubjectAction());
         freezeSubjectButton = new JButton(new FreezeSubjectAction());
+
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.PAGE_AXIS));
-        referencePanel.setBorder(BorderFactory.createTitledBorder(tr("Reference")));
-        referencePanel.setLayout(new BoxLayout(referencePanel, BoxLayout.PAGE_AXIS));
+
+        referencePanel.setBorder(new CompoundBorder(
+                BorderFactory.createTitledBorder(tr("Reference")),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+        referencePanel.setAlignmentX(LEFT_ALIGNMENT);
+        referencePanel.setLayout(new BoxLayout(referencePanel,
+                BoxLayout.PAGE_AXIS));
+
         referenceLayerLabel.setText("(none)");
+        referenceLayerLabel.setAlignmentX(LEFT_ALIGNMENT);
         referencePanel.add(referenceLayerLabel);
         referenceSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
+        referenceSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
         referencePanel.add(referenceSelectionLabel);
+
         jPanel3.setLayout(new BoxLayout(jPanel3, BoxLayout.LINE_AXIS));
+        jPanel3.setAlignmentX(LEFT_ALIGNMENT);
+        jPanel3.add(Box.createHorizontalGlue());
         restoreReferenceButton.setText(tr("Restore"));
         jPanel3.add(restoreReferenceButton);
+        jPanel3.add(Box.createRigidArea(new Dimension(5, 0)));
         jPanel3.add(freezeReferenceButton);
+        jPanel3.add(Box.createHorizontalGlue());
+
+        referencePanel.add(Box.createRigidArea(new Dimension(0, 5)));
         referencePanel.add(jPanel3);
         pnl.add(referencePanel);
-        subjectPanel.setBorder(BorderFactory.createTitledBorder(tr("Subject")));
+
+        pnl.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        subjectPanel.setBorder(new CompoundBorder(
+                BorderFactory.createTitledBorder(tr("Subject")),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
+        subjectPanel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.setLayout(new BoxLayout(subjectPanel, BoxLayout.PAGE_AXIS));
         subjectLayerLabel.setText("(none)");
+        subjectLayerLabel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.add(subjectLayerLabel);
         subjectSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
+        subjectSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.add(subjectSelectionLabel);
+
         jPanel5.setLayout(new BoxLayout(jPanel5, BoxLayout.LINE_AXIS));
+        jPanel5.setAlignmentX(LEFT_ALIGNMENT);
+        jPanel5.add(Box.createHorizontalGlue());
         restoreSubjectButton.setText(tr("Restore"));
         jPanel5.add(restoreSubjectButton);
+        jPanel5.add(Box.createRigidArea(new Dimension(5, 0)));
         freezeSubjectButton.setText(tr("Freeze"));
         jPanel5.add(freezeSubjectButton);
+        jPanel5.add(Box.createHorizontalGlue());
+        subjectPanel.add(Box.createRigidArea(new Dimension(0, 5)));
         subjectPanel.add(jPanel5);
         pnl.add(subjectPanel);
 
+        pnl.add(Box.createRigidArea(new Dimension(0, 10)));
+
         matchFinderPanel = new MatchFinderPanel();
+        matchFinderPanel.setAlignmentX(LEFT_ALIGNMENT);
         pnl.add(matchFinderPanel);
 
         setContent(pnl);
