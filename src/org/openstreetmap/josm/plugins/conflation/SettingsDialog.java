@@ -107,7 +107,8 @@ public class SettingsDialog extends ExtendedDialog {
         referenceLayerPanel.add(referenceLayerLabel);
         referencePanel.add(referenceLayerPanel);
 
-        referenceSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
+        referenceSelectionLabel.setText(tr("{0}: 0 / {1}: 0 / {2}: 0",
+                "Relations", "Ways", "Nodes"));
         referenceSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
         referencePanel.add(referenceSelectionLabel);
 
@@ -142,8 +143,8 @@ public class SettingsDialog extends ExtendedDialog {
         subjectLayerPanel.add(subjectLayerLabel);
         subjectPanel.add(subjectLayerPanel);
 
-        subjectSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
-        subjectSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
+        subjectSelectionLabel.setText(tr("{0}: 0 / {1}: 0 / {2}: 0",
+                "Relations", "Ways", "Nodes"));
         subjectPanel.add(subjectSelectionLabel);
 
         jPanel5.setLayout(new BoxLayout(jPanel5, BoxLayout.LINE_AXIS));
@@ -282,7 +283,7 @@ public class SettingsDialog extends ExtendedDialog {
     class FreezeReferenceAction extends JosmAction {
 
         public FreezeReferenceAction() {
-            super(tr("Freeze"), null, tr("Freeze subject selection"), null, false);
+            super(tr("Freeze"), null, tr("Freeze reference selection"), null, false);
         }
 
         @Override
@@ -327,9 +328,9 @@ public class SettingsDialog extends ExtendedDialog {
                     numRelations++;
                 }
             }
-            // FIXME: translate correctly
             subjectLayerLabel.setText(subjectLayer.getName());
-            subjectSelectionLabel.setText(String.format("Rel.: %d / Ways: %d / Nodes: %d", numRelations, numWays, numNodes));
+            subjectSelectionLabel.setText(tr("{0}: {1} / {2}: {3} / {4}: {5}",
+                    "Relations", numRelations, "Ways", numWays, "Nodes", numNodes));
         }
         numNodes = 0;
         numWays = 0;
@@ -344,10 +345,9 @@ public class SettingsDialog extends ExtendedDialog {
                     numRelations++;
                 }
             }
-
-            // FIXME: translate correctly
             referenceLayerLabel.setText(referenceLayer.getName());
-            referenceSelectionLabel.setText(String.format("Rel.: %d / Ways: %d / Nodes: %d", numRelations, numWays, numNodes));
+            referenceSelectionLabel.setText(tr("{0}: {1} / {2}: {3} / {4}: {5}",
+                    "Relations", numRelations, "Ways", numWays, "Nodes", numNodes));
         }
 
         //FIXME: properly update match finder settings
