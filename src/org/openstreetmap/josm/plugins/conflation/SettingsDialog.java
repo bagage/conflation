@@ -11,6 +11,7 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -26,6 +27,7 @@ import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.ExtendedDialog;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
+import org.openstreetmap.josm.tools.ImageProvider;
 
 /**
  * Dialog for selecting objects and configuring conflation settings
@@ -58,6 +60,8 @@ public class SettingsDialog extends ExtendedDialog {
                 tr("Configure conflation settings"),
                 new String[]{tr("Generate matches"), tr("Cancel")},
                 false);
+        setButtonIcons(new Icon[] {ImageProvider.get("ok"),
+                ImageProvider.get("cancel")});
         referenceSelection = new ArrayList<>();
         subjectSelection = new ArrayList<>();
         initComponents();
