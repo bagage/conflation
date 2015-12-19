@@ -1,22 +1,34 @@
 // License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
+import static org.openstreetmap.josm.tools.I18n.tr;
+
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.JosmAction;
-import org.openstreetmap.josm.data.osm.*;
+import org.openstreetmap.josm.data.osm.DataSet;
+import org.openstreetmap.josm.data.osm.Node;
+import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.data.osm.Relation;
+import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.ExtendedDialog;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
-import static org.openstreetmap.josm.tools.I18n.tr;
 
 /**
  * Dialog for selecting objects and configuring conflation settings
  */
 public class SettingsDialog extends ExtendedDialog {
-    
+
     private JButton freezeReferenceButton;
     private JButton freezeSubjectButton;
     private JPanel jPanel3;
@@ -30,7 +42,7 @@ public class SettingsDialog extends ExtendedDialog {
     private JPanel subjectPanel;
     private JLabel subjectSelectionLabel;
     private MatchFinderPanel matchFinderPanel;
-    
+
     List<OsmPrimitive> subjectSelection = null;
     List<OsmPrimitive> referenceSelection = null;
     OsmDataLayer referenceLayer;
@@ -129,23 +141,23 @@ public class SettingsDialog extends ExtendedDialog {
         settings.setSubjectLayer(subjectLayer);
         settings.setSubjectSelection(subjectSelection);
         settings.setMatchFinder(matchFinderPanel.getMatchFinder());
-        
+
         return settings;
     }
 
-//    /**
-//     * @param settings the settings to set
-//     */
-//    public void setSettings(SimpleMatchSettings settings) {
-//        referenceDataSet = settings.getReferenceDataSet();
-//        referenceLayer = settings.getReferenceLayer();
-//        referenceSelection = settings.getReferenceSelection();
-//        subjectDataSet = settings.getSubjectDataSet();
-//        subjectLayer = settings.getSubjectLayer();
-//        subjectSelection = settings.getSubjectSelection();
-//        update();
-//        //matchFinderPanel.matchFinder = settings.getMatchFinder();
-//    }
+    //    /**
+    //     * @param settings the settings to set
+    //     */
+    //    public void setSettings(SimpleMatchSettings settings) {
+    //        referenceDataSet = settings.getReferenceDataSet();
+    //        referenceLayer = settings.getReferenceLayer();
+    //        referenceSelection = settings.getReferenceSelection();
+    //        subjectDataSet = settings.getSubjectDataSet();
+    //        subjectLayer = settings.getSubjectLayer();
+    //        subjectSelection = settings.getSubjectSelection();
+    //        update();
+    //        //matchFinderPanel.matchFinder = settings.getMatchFinder();
+    //    }
 
     class RestoreSubjectAction extends JosmAction {
 

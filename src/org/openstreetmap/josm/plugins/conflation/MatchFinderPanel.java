@@ -1,15 +1,34 @@
 package org.openstreetmap.josm.plugins.conflation;
 
-import com.vividsolutions.jcs.conflate.polygonmatch.*;
-import java.awt.Dimension;
-import javax.swing.*;
-import net.miginfocom.swing.MigLayout;
 import static org.openstreetmap.josm.tools.I18n.tr;
+
+import java.awt.Dimension;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+
+import net.miginfocom.swing.MigLayout;
+
+import com.vividsolutions.jcs.conflate.polygonmatch.AbstractDistanceMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.BasicFCMatchFinder;
+import com.vividsolutions.jcs.conflate.polygonmatch.CentroidDistanceMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.ChainMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.DisambiguatingFCMatchFinder;
+import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
+import com.vividsolutions.jcs.conflate.polygonmatch.FeatureMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.HausdorffDistanceMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.IdenticalFeatureFilter;
+import com.vividsolutions.jcs.conflate.polygonmatch.OneToOneFCMatchFinder;
 
 
 public class MatchFinderPanel extends JPanel {
-    private JComboBox<String> matchFinderComboBox;
-    private CentroidDistanceComponent centroidDistanceComponent;
+    private final JComboBox<String> matchFinderComboBox;
+    private final CentroidDistanceComponent centroidDistanceComponent;
 
     public MatchFinderPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
