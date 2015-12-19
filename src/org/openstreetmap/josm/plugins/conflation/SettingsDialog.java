@@ -93,9 +93,16 @@ public class SettingsDialog extends ExtendedDialog {
         referencePanel.setLayout(new BoxLayout(referencePanel,
                 BoxLayout.PAGE_AXIS));
 
+        JPanel referenceLayerPanel = new JPanel();
+        referenceLayerPanel.setLayout(new BoxLayout(referenceLayerPanel,
+                BoxLayout.LINE_AXIS));
+        referenceLayerPanel.setAlignmentX(LEFT_ALIGNMENT);
+        referenceLayerPanel.add(new JLabel(tr("Layer:")));
+        referenceLayerPanel.add(Box.createRigidArea(new Dimension(5, 0)));
         referenceLayerLabel.setText("(none)");
-        referenceLayerLabel.setAlignmentX(LEFT_ALIGNMENT);
-        referencePanel.add(referenceLayerLabel);
+        referenceLayerPanel.add(referenceLayerLabel);
+        referencePanel.add(referenceLayerPanel);
+
         referenceSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
         referenceSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
         referencePanel.add(referenceSelectionLabel);
@@ -120,9 +127,17 @@ public class SettingsDialog extends ExtendedDialog {
                 BorderFactory.createEmptyBorder(5,5,5,5)));
         subjectPanel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.setLayout(new BoxLayout(subjectPanel, BoxLayout.PAGE_AXIS));
+
+        JPanel subjectLayerPanel = new JPanel();
+        subjectLayerPanel.setLayout(new BoxLayout(subjectLayerPanel,
+                BoxLayout.LINE_AXIS));
+        subjectLayerPanel.setAlignmentX(LEFT_ALIGNMENT);
+        subjectLayerPanel.add(new JLabel(tr("Layer:")));
+        subjectLayerPanel.add(Box.createRigidArea(new Dimension(5, 0)));
         subjectLayerLabel.setText("(none)");
-        subjectLayerLabel.setAlignmentX(LEFT_ALIGNMENT);
-        subjectPanel.add(subjectLayerLabel);
+        subjectLayerPanel.add(subjectLayerLabel);
+        subjectPanel.add(subjectLayerPanel);
+
         subjectSelectionLabel.setText("Rel.:0 / Ways:0 / Nodes: 0");
         subjectSelectionLabel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.add(subjectSelectionLabel);

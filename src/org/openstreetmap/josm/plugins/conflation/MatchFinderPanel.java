@@ -12,6 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.border.CompoundBorder;
 
 import net.miginfocom.swing.MigLayout;
 
@@ -33,7 +34,9 @@ public class MatchFinderPanel extends JPanel {
 
     public MatchFinderPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(BorderFactory.createTitledBorder(tr("Match finder settings")));
+        setBorder(new CompoundBorder(
+                BorderFactory.createTitledBorder(tr("Match finder settings")),
+                BorderFactory.createEmptyBorder(5,5,5,5)));
 
         String[] matchFinderStrings = {"DisambiguatingFCMatchFinder", "OneToOneFCMatchFinder" };
         matchFinderComboBox = new JComboBox<>(matchFinderStrings);
