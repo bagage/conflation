@@ -1,23 +1,23 @@
 /*
- * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI 
+ * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI
  * for visualizing and manipulating spatial features with geometry and attributes.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -32,7 +32,10 @@
 
 package com.vividsolutions.jump.feature;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.util.Assert;
@@ -58,11 +61,12 @@ public abstract class FeatureCollectionWrapper implements FeatureCollection {
             ((FeatureCollectionWrapper) fc).hasWrapper(getClass())));
     }
 
-    public Collection remove(Envelope env) {
+    @Override
+	public Collection<Feature> remove(Envelope env) {
         return fc.remove(env);
     }
 
-    public boolean hasWrapper(Class c) {
+    public boolean hasWrapper(Class<?> c) {
         Assert.isTrue(FeatureCollectionWrapper.class.isAssignableFrom(c));
 
         if (c.isInstance(this)) {
@@ -77,52 +81,64 @@ public abstract class FeatureCollectionWrapper implements FeatureCollection {
         return fc;
     }
 
-    public FeatureSchema getFeatureSchema() {
+    @Override
+	public FeatureSchema getFeatureSchema() {
         return fc.getFeatureSchema();
     }
 
-    public Envelope getEnvelope() {
+    @Override
+	public Envelope getEnvelope() {
         return fc.getEnvelope();
     }
 
-    public int size() {
+    @Override
+	public int size() {
         return fc.size();
     }
 
-    public boolean isEmpty() {
+    @Override
+	public boolean isEmpty() {
         return fc.isEmpty();
     }
 
-    public List getFeatures() {
+    @Override
+	public List<Feature> getFeatures() {
         return fc.getFeatures();
     }
 
-    public Iterator iterator() {
+    @Override
+	public Iterator<Feature> iterator() {
         return fc.iterator();
     }
 
-    public List query(Envelope envelope) {
+    @Override
+	public List<Feature> query(Envelope envelope) {
         return fc.query(envelope);
     }
 
-    public void add(Feature feature) {
+    @Override
+	public void add(Feature feature) {
         fc.add(feature);
     }
 
-    public void remove(Feature feature) {
+    @Override
+	public void remove(Feature feature) {
         fc.remove(feature);
     }
 
-    public void addAll(Collection features) {
+    @Override
+	public void addAll(Collection<? extends Feature> features) {
         fc.addAll(features);
     }
 
-    public void removeAll(Collection features) {
+    @Override
+	public void removeAll(Collection<Feature> features) {
         fc.removeAll(features);
     }
 
-    public void clear() {
+    @Override
+	public void clear() {
         //Create a new ArrayList to avoid a ConcurrentModificationException. [Jon Aquino]
-        removeAll(new ArrayList(getFeatures()));
+        removeAll(new ArrayList<>(getFeatures()));
     }
 }

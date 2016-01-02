@@ -2,7 +2,7 @@ package com.vividsolutions.jump.feature;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-public interface Feature extends Cloneable, Comparable {
+public interface Feature extends Cloneable, Comparable<Feature> {
 	/**
 	 * A low-level accessor that is not normally used. attributes may have a different
      * length than the current attributes.

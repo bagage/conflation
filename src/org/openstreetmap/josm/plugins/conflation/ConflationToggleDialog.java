@@ -1,25 +1,62 @@
 // License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
-import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
-import com.vividsolutions.jcs.conflate.polygonmatch.Matches;
-import com.vividsolutions.jump.feature.*;
-import com.vividsolutions.jump.task.TaskMonitor;
+import static org.openstreetmap.josm.tools.I18n.marktr;
+import static org.openstreetmap.josm.tools.I18n.tr;
+
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Rectangle;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.Icon;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableCellRenderer;
+
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.AutoScaleAction;
 import org.openstreetmap.josm.actions.JosmAction;
 import org.openstreetmap.josm.command.Command;
 import org.openstreetmap.josm.data.SelectionChangedListener;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
-import org.openstreetmap.josm.data.osm.event.*;
+import org.openstreetmap.josm.data.osm.event.AbstractDatasetChangedEvent;
+import org.openstreetmap.josm.data.osm.event.DataChangedEvent;
+import org.openstreetmap.josm.data.osm.event.DataSetListener;
+import org.openstreetmap.josm.data.osm.event.NodeMovedEvent;
+import org.openstreetmap.josm.data.osm.event.PrimitivesAddedEvent;
+import org.openstreetmap.josm.data.osm.event.PrimitivesRemovedEvent;
+import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
+import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
+import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
 import org.openstreetmap.josm.gui.MapView.EditLayerChangeListener;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
 import org.openstreetmap.josm.gui.SideButton;
@@ -30,12 +67,19 @@ import org.openstreetmap.josm.gui.progress.PleaseWaitProgressMonitor;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
 import org.openstreetmap.josm.plugins.jts.JTSConverter;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryException;
-import static org.openstreetmap.josm.tools.I18n.marktr;
-import static org.openstreetmap.josm.tools.I18n.tr;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
 import org.openstreetmap.josm.tools.UserCancelException;
+
+import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
+import com.vividsolutions.jcs.conflate.polygonmatch.Matches;
+import com.vividsolutions.jump.feature.AttributeType;
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.feature.FeatureCollection;
+import com.vividsolutions.jump.feature.FeatureDataset;
+import com.vividsolutions.jump.feature.FeatureSchema;
+import com.vividsolutions.jump.task.TaskMonitor;
 
 public class ConflationToggleDialog extends ToggleDialog
         implements EditLayerChangeListener, SelectionChangedListener, DataSetListener,
@@ -94,7 +138,7 @@ public class ConflationToggleDialog extends ToggleDialog
         matchTable.getColumnModel().getColumn(0).setCellRenderer(new OsmPrimitivRenderer());
         matchTable.getColumnModel().getColumn(1).setCellRenderer(new OsmPrimitivRenderer());
         matchTable.getColumnModel().getColumn(4).setCellRenderer(new ColorTableCellRenderer("Tags"));
-        
+
         matchTable.setRowSelectionAllowed(true);
         matchTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
@@ -176,12 +220,12 @@ public class ConflationToggleDialog extends ToggleDialog
     public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
         // adjust table selection to match match list selection
         // FIXME: is this really where I should be doing this?
-        
+
         // selection is the same, don't do anything
         Collection<SimpleMatch> tableSelection = getSelectedFromTable();
         if (tableSelection.containsAll(selected) && tableSelection.size() == selected.size())
             return;
-        
+
         ListSelectionModel lsm = matchTable.getSelectionModel();
         lsm.setValueIsAdjusting(true);
         lsm.clearSelection();
@@ -205,7 +249,7 @@ public class ConflationToggleDialog extends ToggleDialog
         List<OsmPrimitive> selection = new ArrayList<>();
         if (tabbedPane == null || tabbedPane.getSelectedComponent() == null)
             return selection;
-        
+
         if (tabbedPane.getSelectedComponent().equals(matchTable)) {
             for (SimpleMatch c : matches.getSelected()) {
                 selection.add(c.getReferenceObject());
@@ -322,7 +366,7 @@ public class ConflationToggleDialog extends ToggleDialog
             add(new ConflateMenuItem("Use subject geometry, reference tags"));
         }
     }
-        
+
     class MatchListSelectionHandler implements ListSelectionListener {
 
         @Override
@@ -388,17 +432,17 @@ public class ConflationToggleDialog extends ToggleDialog
         public RemoveMatchCommand(Collection<SimpleMatch> toRemove) {
             this.toRemove = toRemove;
         }
-        
+
         @Override
         public boolean executeCommand() {
             return matches.removeAll(toRemove);
         }
-        
+
         @Override
         public void undoCommand() {
             matches.addAll(toRemove);
         }
-        
+
         @Override
         public void fillModifiedData(Collection<OsmPrimitive> modified, Collection<OsmPrimitive> deleted, Collection<OsmPrimitive> added) {
         }
@@ -407,7 +451,7 @@ public class ConflationToggleDialog extends ToggleDialog
         public String getDescriptionText() {
             return tr(marktr("Delete {0} conflation matches"), toRemove.size());
         }
-        
+
         @Override
         public Icon getDescriptionIcon() {
             return ImageProvider.get("dialogs", "delete");
@@ -515,7 +559,7 @@ public class ConflationToggleDialog extends ToggleDialog
             updateEnabledState();
         }
     }
-    
+
     class ConflateAction extends JosmAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
 
         public ConflateAction() {
@@ -556,7 +600,7 @@ public class ConflationToggleDialog extends ToggleDialog
                         break;
                     }
                     cmds.add(conflateCommand);
-                    
+
                     // FIXME: how to chain commands which change relations? (see below)
                     Main.main.undoRedo.add(conflateCommand);
                 }
@@ -564,7 +608,7 @@ public class ConflationToggleDialog extends ToggleDialog
                 JOptionPane.showMessageDialog(Main.parent,
                         ex.getMessage(), tr("Cannot replace geometry."), JOptionPane.INFORMATION_MESSAGE);
             }
-            
+
             // FIXME: ReplaceGeometry changes relations, so can't put it in a SequenceCommand
 //            if (cmds.size() == 1) {
 //                Main.main.undoRedo.add(cmds.iterator().next());
@@ -572,11 +616,11 @@ public class ConflationToggleDialog extends ToggleDialog
 //                SequenceCommand seqCmd = new SequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds);
 //                Main.main.undoRedo.add(seqCmd);
 //            }
-            
+
             if (matches.getSelected().isEmpty())
                 matches.setSelected(nextSelection);
         }
-        
+
         @Override
         public void updateEnabledState() {
             if (tabbedPane.getSelectedComponent().equals(matchTable) &&
@@ -694,7 +738,7 @@ public class ConflationToggleDialog extends ToggleDialog
                     ((JList<?>)c).setSelectedIndex(idx);
                 }
             }
-            
+
             selectionPopup.show(c, evt.getX(), evt.getY());
         }
     }
@@ -765,7 +809,7 @@ public class ConflationToggleDialog extends ToggleDialog
     /**
      * Create FeatureSchema using union of all keys from all selected primitives
      * @param prims
-     * @return 
+     * @return
      */
     private FeatureSchema createSchema(Collection<OsmPrimitive> prims) {
         Set<String> keys = new HashSet<>();
@@ -777,9 +821,9 @@ public class ConflationToggleDialog extends ToggleDialog
         for (String key : keys) {
             schema.addAttribute(key, AttributeType.STRING);
         }
-        return schema;   
+        return schema;
     }
-    
+
     private FeatureCollection createFeatureCollection(Collection<OsmPrimitive> prims) {
         FeatureDataset dataset = new FeatureDataset(createSchema(prims));
         //TODO: use factory instead of passing converter
@@ -789,12 +833,12 @@ public class ConflationToggleDialog extends ToggleDialog
         }
         return dataset;
     }
-    
+
     /**
      * Progress monitor for use with JCS
      */
     private class JosmTaskMonitor extends PleaseWaitProgressMonitor implements TaskMonitor {
-        
+
         @Override
         public void report(String description) {
             subTask(description);
@@ -819,13 +863,13 @@ public class ConflationToggleDialog extends ToggleDialog
         public boolean isCancelRequested() {
             return isCanceled();
         }
-        
+
     }
-    
+
     private SimpleMatchList generateMatches(SimpleMatchSettings settings) {
         JosmTaskMonitor monitor = new JosmTaskMonitor();
         monitor.beginTask("Generating matches");
-        
+
         // create Features and collections from primitive selections
         Set<OsmPrimitive> allPrimitives = new HashSet<>();
         allPrimitives.addAll(settings.getReferenceSelection());
@@ -840,7 +884,7 @@ public class ConflationToggleDialog extends ToggleDialog
             if (settings.getSubjectSelection().contains(osmFeature.getPrimitive()))
                 subColl.add(osmFeature);
         }
-        
+
         //TODO: pass to MatchFinderPanel to use as hint/default for DistanceMatchers
         // get maximum possible distance so scores can be scaled (FIXME: not quite accurate)
 //        Envelope envelope = refColl.getEnvelope();
@@ -850,28 +894,27 @@ public class ConflationToggleDialog extends ToggleDialog
 //            envelope.getMinY(),
 //            envelope.getMaxX(),
 //            envelope.getMaxY());
-        
+
         // build matcher
         FCMatchFinder finder = settings.getMatchFinder();
 
         // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
         // FIXME: fix match functions to work on point/linestring features as well
         // find matches
-        @SuppressWarnings("unchecked")
-		Map<OsmFeature, Matches> map = finder.match(refColl, subColl, monitor);
-        
+		Map<Feature, Matches> map = finder.match(refColl, subColl, monitor);
+
         monitor.subTask("Finishing match list");
-        
+
         // convert to simple one-to-one match
         SimpleMatchList list = new SimpleMatchList();
-        for (Map.Entry<OsmFeature, Matches> entry: map.entrySet()) {
-            OsmFeature target = entry.getKey();
+        for (Map.Entry<Feature, Matches> entry: map.entrySet()) {
+            OsmFeature target = (OsmFeature) entry.getKey();
             OsmFeature subject = (OsmFeature)entry.getValue().getTopMatch();
             if (target != null && subject != null)
                 list.add(new SimpleMatch(target.getPrimitive(), subject.getPrimitive(),
                         entry.getValue().getTopScore()));
         }
-        
+
         monitor.finishTask();
         monitor.close();
         return list;

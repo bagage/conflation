@@ -3,21 +3,21 @@
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -30,14 +30,32 @@
  * www.vividsolutions.com
  */
 package com.vividsolutions.jcs.conflate.polygonmatch;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jump.feature.*;
+import com.vividsolutions.jump.feature.BasicFeature;
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.feature.FeatureCollection;
+import com.vividsolutions.jump.feature.FeatureDataset;
+import com.vividsolutions.jump.feature.FeatureSchema;
+import com.vividsolutions.jump.feature.IndexedFeatureCollection;
 import com.vividsolutions.jump.task.TaskMonitor;
 import com.vividsolutions.jump.util.CollectionUtil;
 import com.vividsolutions.jump.util.CoordinateArrays;
-import java.util.*;
+
 /**
  *  An FCMatchFinder wrapper that also treats unions of adjacent target features
  *  as themselves target features. Such unions are formed into composite target
@@ -67,45 +85,45 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
         this.matchFinder = matchFinder;
     }
     @Override
-    public Map match(
+    public Map<Feature, Matches> match(
         FeatureCollection targetFC,
         FeatureCollection candidateFC,
         TaskMonitor monitor) {
         monitor.allowCancellationRequests();
         FeatureCollection compositeTargetFC = createCompositeFC(targetFC, monitor);
-        Map compositeTargetFeatureToMatchesMap =
+        Map<Feature, Matches> compositeTargetFeatureToMatchesMap =
             matchFinder.match(compositeTargetFC, candidateFC, monitor);
         compositeTargetFeatureToMatchesMap =
             disambiguateCompositeTargetConstituents(
                 compositeTargetFeatureToMatchesMap,
                 candidateFC.getFeatureSchema(),
                 monitor);
-        createUnionIDs(compositeTargetFeatureToMatchesMap, monitor);                
-        Map filteredTargetToMatchesMap =
+        createUnionIDs(compositeTargetFeatureToMatchesMap, monitor);
+        Map<Feature, Matches> filteredTargetToMatchesMap =
             splitCompositeTargets(compositeTargetFeatureToMatchesMap, monitor);
         //Zero-score targets will have been filtered out. Put them back. [Jon Aquino]
-        Map targetToMatchesMap =
+        Map<Feature, Matches> targetToMatchesMap =
             AreaFilterFCMatchFinder.blankTargetToMatchesMap(
                 targetFC.getFeatures(),
                 candidateFC.getFeatureSchema());
         targetToMatchesMap.putAll(filteredTargetToMatchesMap);
         return targetToMatchesMap;
     }
-    private List lastTargetConstituents;
-    private List lastUnionIDs;
-    private void createUnionIDs(final Map compositeTargetFeatureToMatchesMap, TaskMonitor monitor) {
+    private List<Feature> lastTargetConstituents;
+    private List<Integer> lastUnionIDs;
+    private void createUnionIDs(final Map<Feature, Matches> compositeTargetFeatureToMatchesMap, TaskMonitor monitor) {
         monitor.report("Creating union IDs");
-        ArrayList compositeTargets = new ArrayList(compositeTargetFeatureToMatchesMap.keySet());
-        Collections.sort(compositeTargets, new Comparator() {
+        List<Feature> compositeTargets = new ArrayList<>(compositeTargetFeatureToMatchesMap.keySet());
+        Collections.sort(compositeTargets, new Comparator<Feature>() {
             @Override
-            public int compare(Object o1, Object o2) {
-                double s1 = ((Matches)compositeTargetFeatureToMatchesMap.get(o1)).getTopScore();
-                double s2 = ((Matches)compositeTargetFeatureToMatchesMap.get(o2)).getTopScore();
+            public int compare(Feature o1, Feature o2) {
+                double s1 = compositeTargetFeatureToMatchesMap.get(o1).getTopScore();
+                double s2 = compositeTargetFeatureToMatchesMap.get(o2).getTopScore();
                 return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
             }
         });
-        lastTargetConstituents = new ArrayList();
-        lastUnionIDs = new ArrayList();
+        lastTargetConstituents = new ArrayList<>();
+        lastUnionIDs = new ArrayList<>();
         int unionID = 0;
         for (int i = 0; i < compositeTargets.size(); i++) {
             monitor.report(i+1, compositeTargets.size(), "unions");
@@ -114,8 +132,7 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
                 continue;
             }
             unionID++;
-            for (Iterator j = compositeTarget.getFeatures().iterator(); j.hasNext(); ) {
-                Feature targetConstituent = (Feature) j.next();
+            for (Feature targetConstituent : compositeTarget.getFeatures()) {
                 lastTargetConstituents.add(targetConstituent);
                 lastUnionIDs.add(new Integer(unionID));
             }
@@ -125,36 +142,31 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
         FeatureCollection fc,
         TaskMonitor monitor) {
         FeatureCollection compositeFC = new FeatureDataset(fc.getFeatureSchema());
-        Set composites = createCompositeSet(fc, monitor);
+        Set<CompositeFeature> composites = createCompositeSet(fc, monitor);
         add(composites, compositeFC, monitor);
         return new IndexedFeatureCollection(compositeFC);
     }
     /**
-     * Returns a composite-target-to-Matches map in which each target constituent will be 
+     * Returns a composite-target-to-Matches map in which each target constituent will be
      * found in at most one composite target. Does not disambiguate composite targets
      * or matches (use DisambiguatingFCMatchFinder to do that), just composite target
      * constituents.
      */
-    protected Map disambiguateCompositeTargetConstituents(
-        Map compositeTargetToMatchesMap,
+    protected Map<Feature, Matches> disambiguateCompositeTargetConstituents(
+        Map<Feature, Matches> compositeTargetToMatchesMap,
         FeatureSchema candidateSchema,
         TaskMonitor monitor) {
-        ArrayList targetConstituentsEncountered = new ArrayList();
-        ArrayList compositeTargets = new ArrayList();
-        ArrayList candidates = new ArrayList();
-        ArrayList scores = new ArrayList();
-        SortedSet matchSet =
+        List<Feature> targetConstituentsEncountered = new ArrayList<>();
+        List<Feature> compositeTargets = new ArrayList<>();
+        List<Feature> candidates = new ArrayList<>();
+        List<Double> scores = new ArrayList<>();
+        SortedSet<DisambiguationMatch> matchSet =
             DisambiguationMatch.createDisambiguationMatches(compositeTargetToMatchesMap, monitor);
         monitor.report("Discarding inferior composite matches");
         int j = 0;
-        outer : for (Iterator i = matchSet.iterator(); i.hasNext();) {
-            DisambiguationMatch match = (DisambiguationMatch) i.next();
+        outer : for (DisambiguationMatch match : matchSet) {
             monitor.report(++j, matchSet.size(), "matches");
-            for (Iterator k =
-                ((CompositeFeature) match.getTarget()).getFeatures().iterator();
-                k.hasNext();
-                ) {
-                Feature targetConstituent = (Feature) k.next();
+            for (Feature targetConstituent : ((CompositeFeature) match.getTarget()).getFeatures()) {
                 if (targetConstituentsEncountered.contains(targetConstituent)) {
                     continue outer;
                 }
@@ -164,21 +176,20 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             scores.add(new Double(match.getScore()));
             targetConstituentsEncountered.addAll(((CompositeFeature) match.getTarget()).getFeatures());
         }
-        Map newMap = new HashMap();
+        Map<Feature, Matches> newMap = new HashMap<>();
         for (int i = 0; i < compositeTargets.size(); i++) {
             Matches matches = new Matches(candidateSchema);
             matches.add(
-                (Feature) candidates.get(i),
-                ((Double) scores.get(i)).doubleValue());
+                candidates.get(i),
+                scores.get(i).doubleValue());
             newMap.put(compositeTargets.get(i), matches);
         }
         return newMap;
     }
-    private List featuresWithCommonEdge(Feature feature, FeatureCollection fc) {
-        ArrayList featuresWithCommonEdge = new ArrayList();
-        List candidates = fc.query(feature.getGeometry().getEnvelopeInternal());
-        for (Iterator i = candidates.iterator(); i.hasNext();) {
-            Feature candidate = (Feature) i.next();
+    private List<Feature> featuresWithCommonEdge(Feature feature, FeatureCollection fc) {
+        List<Feature> featuresWithCommonEdge = new ArrayList<>();
+        List<Feature> candidates = fc.query(feature.getGeometry().getEnvelopeInternal());
+        for (Feature candidate : candidates) {
             if (feature == candidate
                 || shareEdge(feature.getGeometry(), candidate.getGeometry())) {
                 featuresWithCommonEdge.add(candidate);
@@ -187,17 +198,16 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
         return featuresWithCommonEdge;
     }
     protected boolean shareEdge(Geometry a, Geometry b) {
-        Set aEdges = edges(a);
-        Set bEdges = edges(b);
-        for (Iterator i = bEdges.iterator(); i.hasNext();) {
-            Edge bEdge = (Edge) i.next();
+        Set<Edge> aEdges = edges(a);
+        Set<Edge> bEdges = edges(b);
+        for (Edge bEdge : bEdges) {
             if (aEdges.contains(bEdge)) {
                 return true;
             }
         }
         return false;
     }
-    private static class Edge implements Comparable {
+    private static class Edge implements Comparable<Edge> {
         private Coordinate p0, p1;
         public Edge(Coordinate a, Coordinate b) {
             if (a.compareTo(b) < 1) {
@@ -209,20 +219,16 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             }
         }
         @Override
-        public int compareTo(Object o) {
-            Edge other = (Edge) o;
+        public int compareTo(Edge other) {
             int result = p0.compareTo(other.p0);
             if (result != 0)
                 return result;
             return p1.compareTo(other.p1);
         }
     }
-    private Set edges(Geometry g) {
-        TreeSet edges = new TreeSet();
-        for (Iterator i = CoordinateArrays.toCoordinateArrays(g, false).iterator();
-            i.hasNext();
-            ) {
-            Coordinate[] coordinates = (Coordinate[]) i.next();
+    private Set<Edge> edges(Geometry g) {
+        Set<Edge> edges = new TreeSet<>();
+        for (Coordinate[] coordinates : CoordinateArrays.toCoordinateArrays(g, false)) {
             for (int j = 1; j < coordinates.length; j++) { //1
                 edges.add(new Edge(coordinates[j], coordinates[j - 1]));
             }
@@ -232,46 +238,45 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
     /**
      *  Splits each composite target into its constituent features.
      */
-    protected Map splitCompositeTargets(Map compositeToMatchesMap, TaskMonitor monitor) {
+    protected Map<Feature, Matches> splitCompositeTargets(Map<Feature, Matches> compositeToMatchesMap, TaskMonitor monitor) {
         monitor.report("Splitting composites");
         int compositesProcessed = 0;
         int totalComposites = compositeToMatchesMap.size();
-        Map newMap = new HashMap();
-        for (Iterator i = compositeToMatchesMap.keySet().iterator();
+        Map<Feature, Matches> newMap = new HashMap<>();
+        for (Iterator<Feature> i = compositeToMatchesMap.keySet().iterator();
             i.hasNext() && !monitor.isCancelRequested();
             ) {
             CompositeFeature composite = (CompositeFeature) i.next();
             compositesProcessed++;
             monitor.report(compositesProcessed, totalComposites, "composites");
-            Matches matches = (Matches) compositeToMatchesMap.get(composite);
-            for (Iterator j = composite.getFeatures().iterator(); j.hasNext();) {
-                Feature targetConstituent = (Feature) j.next();
+            Matches matches = compositeToMatchesMap.get(composite);
+            for (Feature targetConstituent : composite.getFeatures()) {
                 Assert.isTrue(!newMap.containsKey(targetConstituent));
                 newMap.put(targetConstituent, matches.clone());
             }
         }
         return newMap;
     }
-    private Set createCompositeSet(FeatureCollection fc, TaskMonitor monitor) {
+    private Set<CompositeFeature> createCompositeSet(FeatureCollection fc, TaskMonitor monitor) {
         monitor.report("Creating composites of adjacent features");
         int featuresProcessed = 0;
         int totalFeatures = fc.getFeatures().size();
         //Use a Set to prevent duplicate composites [Jon Aquino]
-        HashSet composites = new HashSet();
-        for (Iterator i = fc.getFeatures().iterator();
+        Set<CompositeFeature> composites = new HashSet<>();
+        for (Iterator<Feature> i = fc.getFeatures().iterator();
             i.hasNext() && !monitor.isCancelRequested();
             ) {
-            Feature feature = (Feature) i.next();
+            Feature feature = i.next();
             featuresProcessed++;
             monitor.report(featuresProcessed, totalFeatures, "features");
-            List featuresWithCommonEdge = featuresWithCommonEdge(feature, fc);
-            for (Iterator j =
+            List<Feature> featuresWithCommonEdge = featuresWithCommonEdge(feature, fc);
+            for (Iterator<List<Feature>> j =
                 CollectionUtil
                     .combinations(featuresWithCommonEdge, maxCompositeSize, feature)
                     .iterator();
                 j.hasNext() && !monitor.isCancelRequested();
                 ) {
-                List combination = (List) j.next();
+                List<Feature> combination = j.next();
                 composites.add(new CompositeFeature(fc.getFeatureSchema(), combination));
             }
         }
@@ -279,21 +284,21 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
     }
 
     public static class CompositeFeature extends BasicFeature {
-        private List features;
+        private List<Feature> features;
         private int hashCode;
-        public CompositeFeature(FeatureSchema schema, List features) {
+        public CompositeFeature(FeatureSchema schema, List<Feature> features) {
             super(schema);
             this.features = features;
-            Geometry union = ((Feature) features.get(0)).getGeometry();
-            hashCode = ((Feature) features.get(0)).hashCode();
+            Geometry union = features.get(0).getGeometry();
+            hashCode = features.get(0).hashCode();
             for (int i = 1; i < features.size(); i++) {
-                Feature feature = (Feature) features.get(i);
+                Feature feature = features.get(i);
                 union = union.union(feature.getGeometry());
                 hashCode = Math.min(hashCode, feature.hashCode());
             }
             setGeometry(union);
         }
-        public List getFeatures() {
+        public List<Feature> getFeatures() {
             return features;
         }
         @Override
@@ -303,8 +308,7 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             if (features.size() != other.features.size()) {
                 return false;
             }
-            for (Iterator i = features.iterator(); i.hasNext();) {
-                Feature myFeature = (Feature) i.next();
+            for (Feature myFeature : features) {
                 if (!other.features.contains(myFeature)) {
                     return false;
                 }
@@ -316,13 +320,13 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             return hashCode;
         }
     }
-    private void add(Collection features, FeatureCollection fc, TaskMonitor monitor) {
+    private void add(Collection<? extends Feature> features, FeatureCollection fc, TaskMonitor monitor) {
         monitor.report("Building feature-collection");
         fc.addAll(features);
     }
     public Integer getUnionID(Feature target) {
         int i = lastTargetConstituents.indexOf(target);
         if (i == -1) { return null; }
-        return (Integer)lastUnionIDs.get(i);
+        return lastUnionIDs.get(i);
     }
 }

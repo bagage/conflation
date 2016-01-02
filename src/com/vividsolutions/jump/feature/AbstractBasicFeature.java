@@ -7,15 +7,16 @@ import com.vividsolutions.jts.geom.Geometry;
  * #getAttribute, #setAttribute, #getAttributes, #setAttributes
  */
 public abstract class AbstractBasicFeature implements Feature {
-    
+
     private FeatureSchema schema;
     private int id;
     /**
      * A low-level accessor that is not normally used.
-     */    
-    public void setSchema(FeatureSchema schema) {
+     */
+    @Override
+	public void setSchema(FeatureSchema schema) {
         this.schema = schema;
-    }            
+    }
 
     /**
      *  Creates a new Feature based on the given metadata.
@@ -33,7 +34,8 @@ public abstract class AbstractBasicFeature implements Feature {
      * persistent.
      * @return n, where this feature is the nth Feature created by this application
      */
-    public int getID() {
+    @Override
+	public int getID() {
         return id;
     }
 
@@ -43,7 +45,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  attributeName  the name of the attribute to set
      *@param  newAttribute   the new attribute
      */
-    public void setAttribute(String attributeName, Object newAttribute) {
+    @Override
+	public void setAttribute(String attributeName, Object newAttribute) {
         setAttribute(schema.getAttributeIndex(attributeName),
             newAttribute);
     }
@@ -55,7 +58,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *
      *@param  geometry  the new spatial attribute
      */
-    public void setGeometry(Geometry geometry) {
+    @Override
+	public void setGeometry(Geometry geometry) {
         setAttribute(schema.getGeometryIndex(), geometry);
     }
 
@@ -65,7 +69,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  name  the name of the attribute to get
      *@return the attribute
      */
-    public Object getAttribute(String name) {
+    @Override
+	public Object getAttribute(String name) {
         return getAttribute(schema.getAttributeIndex(name));
     }
 
@@ -78,7 +83,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  attributeIndex  the array index of the attribute
      *@return                 the String attribute at the given index
      */
-    public String getString(int attributeIndex) {
+    @Override
+	public String getString(int attributeIndex) {
         // return (String) attributes[attributeIndex];
         //Dave B changed this so you can convert Integers->Strings
         //Automatic conversion of integers to strings is a bit hack-like.
@@ -88,7 +94,7 @@ public abstract class AbstractBasicFeature implements Feature {
         Object result = getAttribute(attributeIndex);
 
         //We used to eat ArrayOutOfBoundsExceptions here. I've removed this behaviour
-        //because ArrayOutOfBoundsExceptions are bugs and should be exposed. [Jon Aquino]        
+        //because ArrayOutOfBoundsExceptions are bugs and should be exposed. [Jon Aquino]
 
         //Is it valid for an attribute to be null? If not, we should put an
         //Assert here [Jon Aquino]
@@ -105,7 +111,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  attributeIndex the index of the attribute to retrieve
      *@return                the integer attribute with the given name
      */
-    public int getInteger(int attributeIndex) {
+    @Override
+	public int getInteger(int attributeIndex) {
         return ((Integer) getAttribute(attributeIndex)).intValue();
     }
 
@@ -115,7 +122,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  attributeIndex the index of the attribute to retrieve
      *@return                the double attribute with the given name
      */
-    public double getDouble(int attributeIndex) {
+    @Override
+	public double getDouble(int attributeIndex) {
         return ((Double) getAttribute(attributeIndex)).doubleValue();
     }
 
@@ -128,7 +136,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *@param  attributeName  the name of the attribute to retrieve
      *@return                the String attribute with the given name
      */
-    public String getString(String attributeName) {
+    @Override
+	public String getString(String attributeName) {
         return getString(schema.getAttributeIndex(attributeName));
     }
 
@@ -137,7 +146,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *
      *@return    the feature's spatial attribute
      */
-    public Geometry getGeometry() {
+    @Override
+	public Geometry getGeometry() {
         return (Geometry) getAttribute(schema.getGeometryIndex());
     }
 
@@ -146,7 +156,8 @@ public abstract class AbstractBasicFeature implements Feature {
      *
      *@return    the metadata describing the names and types of the attributes
      */
-    public FeatureSchema getSchema() {
+    @Override
+	public FeatureSchema getSchema() {
         return schema;
     }
 
@@ -154,7 +165,8 @@ public abstract class AbstractBasicFeature implements Feature {
      * Clones this Feature. The geometry will also be cloned.
      * @return a new Feature with the same attributes as this Feature
      */
-    public Object clone() {
+    @Override
+	public Object clone() {
         return clone(true);
     }
 
@@ -163,7 +175,8 @@ public abstract class AbstractBasicFeature implements Feature {
      * @param deep whether or not to clone the geometry
      * @return a new Feature with the same attributes as this Feature
      */
-    public Feature clone(boolean deep) {
+    @Override
+	public Feature clone(boolean deep) {
         Feature clone = new BasicFeature(schema);
 
         for (int i = 0; i < schema.getAttributeCount(); i++) {
@@ -178,7 +191,8 @@ public abstract class AbstractBasicFeature implements Feature {
         return clone;
     }
 
-    public int compareTo(Object o) {
-        return getGeometry().compareTo(((Feature) o).getGeometry());
+    @Override
+	public int compareTo(Feature o) {
+        return getGeometry().compareTo(o.getGeometry());
     }
 }

@@ -1,25 +1,23 @@
-
-
 /*
  * The JCS Conflation Suite (JCS) is a library of Java classes that
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -34,13 +32,18 @@
 
 package com.vividsolutions.jcs.conflate.polygonmatch;
 
-import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jump.feature.*;
-import com.vividsolutions.jump.task.TaskMonitor;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import com.vividsolutions.jts.util.Assert;
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.feature.FeatureCollection;
+import com.vividsolutions.jump.feature.FeatureDataset;
+import com.vividsolutions.jump.feature.FeatureSchema;
+import com.vividsolutions.jump.feature.IndexedFeatureCollection;
+import com.vividsolutions.jump.task.TaskMonitor;
 
 /**
  * Speeds up processing by ignoring target and candidate features with areas
@@ -63,18 +66,18 @@ public class AreaFilterFCMatchFinder implements FCMatchFinder {
     }
 
     @Override
-    public Map match(
+    public Map<Feature, Matches> match(
         FeatureCollection targetFC,
         FeatureCollection candidateFC,
         TaskMonitor monitor) {
         monitor.allowCancellationRequests();
-        Map filteredTargetToMatchesMap =
+        Map<Feature, Matches> filteredTargetToMatchesMap =
             matchFinder.match(
                 filter(targetFC, "targets", monitor),
                 filter(candidateFC, "candidates", monitor),
                 monitor);
         //      Put back the targets that were filtered out (albeit with no matches). [Jon Aquino]
-        Map targetToMatchesMap =
+        Map<Feature, Matches> targetToMatchesMap =
             blankTargetToMatchesMap(
                 targetFC.getFeatures(),
                 candidateFC.getFeatureSchema());
@@ -90,8 +93,8 @@ public class AreaFilterFCMatchFinder implements FCMatchFinder {
         int featuresProcessed = 0;
         int totalFeatures = fc.size();
         FeatureDataset filteredFC = new FeatureDataset(fc.getFeatureSchema());
-        for (Iterator i = fc.iterator(); i.hasNext() && !monitor.isCancelRequested();) {
-            Feature feature = (Feature) i.next();
+        for (Iterator<Feature> i = fc.iterator(); i.hasNext() && !monitor.isCancelRequested();) {
+            Feature feature = i.next();
             featuresProcessed++;
             monitor.report(featuresProcessed, totalFeatures, "features");
             if (!satisfiesAreaCriterion(feature)) {
@@ -107,15 +110,13 @@ public class AreaFilterFCMatchFinder implements FCMatchFinder {
         return minArea <= area && area <= maxArea;
     }
 
-    public static Map blankTargetToMatchesMap(
-        Collection targets,
+    public static Map<Feature, Matches> blankTargetToMatchesMap(
+        Collection<Feature> targets,
         FeatureSchema matchesSchema) {
-        Map blankTargetToMatchesMap = new HashMap();
-        for (Iterator i = targets.iterator(); i.hasNext();) {
-            Feature target = (Feature) i.next();
+        Map<Feature, Matches> blankTargetToMatchesMap = new HashMap<>();
+        for (Feature target : targets) {
             blankTargetToMatchesMap.put(target, new Matches(matchesSchema));
         }
         return blankTargetToMatchesMap;
     }
-
 }

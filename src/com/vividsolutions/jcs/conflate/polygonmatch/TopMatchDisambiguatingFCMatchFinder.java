@@ -1,25 +1,23 @@
-
-
 /*
  * The JCS Conflation Suite (JCS) is a library of Java classes that
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -31,16 +29,16 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jcs.conflate.polygonmatch;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import com.vividsolutions.jts.util.Assert;
 import com.vividsolutions.jump.feature.Feature;
 import com.vividsolutions.jump.feature.FeatureCollection;
 import com.vividsolutions.jump.task.TaskMonitor;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 /**
  * Enforces a one-to-one relationship between target features and
@@ -55,7 +53,7 @@ import java.util.Map;
  * C1, C2, and C3 are from the candidate dataset. OneToOneFCMatchFinder filters
  * out all matches except the top ones, for each feature, leaving:
  * T2-C3 (1.0), T3-C4 (0.5).
- * * @see DisambiguatingFCMatchFinder 
+ * * @see DisambiguatingFCMatchFinder
  */
 public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
 
@@ -66,29 +64,29 @@ public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
     }
 
     @Override
-    public Map match(
+    public Map<Feature, Matches> match(
         FeatureCollection targetFC,
         FeatureCollection candidateFC,
         TaskMonitor monitor) {
-        Map originalTargetToMatchesMap =
+        Map<Feature, Matches> originalTargetToMatchesMap =
             matchFinder.match(targetFC, candidateFC, monitor);
         monitor.allowCancellationRequests();
         monitor.report("Finding best forward matches");
-        Map bestForwardMatches = filterMatches(originalTargetToMatchesMap, monitor);
+        Map<Feature, Matches> bestForwardMatches = filterMatches(originalTargetToMatchesMap, monitor);
         monitor.report("Finding best reverse matches");
-        Map bestReverseMatches =
+        Map<Feature, Matches> bestReverseMatches =
             filterMatches(invert(originalTargetToMatchesMap, monitor), monitor);
         monitor.report("Finding common best matches");
         //Want matches that are "best" regardless of whether forward or reverse.
         //This is the only scheme I can think of right now that will satisfy
         //the case described in the class comment. [Jon Aquino]
-        Map filteredTargetToMatchesMap =
+        Map<Feature, Matches> filteredTargetToMatchesMap =
             commonMatches(
                 bestForwardMatches,
                 invert(bestReverseMatches, monitor),
                 monitor);
         //Put back the targets that were filtered out (albeit with no matches). [Jon Aquino]
-        Map targetToMatchesMap =
+        Map<Feature, Matches> targetToMatchesMap =
             AreaFilterFCMatchFinder.blankTargetToMatchesMap(
                 targetFC.getFeatures(),
                 candidateFC.getFeatureSchema());
@@ -96,24 +94,24 @@ public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
         return targetToMatchesMap;
     }
 
-    private Map commonMatches(
-        Map featureToMatchesMap1,
-        Map featureToMatchesMap2,
+    private Map<Feature, Matches> commonMatches(
+        Map<Feature, Matches> featureToMatchesMap1,
+        Map<Feature, Matches> featureToMatchesMap2,
         TaskMonitor monitor) {
         int featuresProcessed = 0;
         int totalFeatures = featureToMatchesMap1.size();
-        Map commonMatches = new HashMap();
-        for (Iterator i = featureToMatchesMap1.keySet().iterator();
+        Map<Feature, Matches> commonMatches = new HashMap<>();
+        for (Iterator<Feature> i = featureToMatchesMap1.keySet().iterator();
             i.hasNext() && !monitor.isCancelRequested();
             ) {
-            Feature key1 = (Feature) i.next();
+            Feature key1 = i.next();
             featuresProcessed++;
             monitor.report(featuresProcessed, totalFeatures, "features");
             if (!featureToMatchesMap2.containsKey(key1)) {
                 continue;
             }
-            Matches matches1 = (Matches) featureToMatchesMap1.get(key1);
-            Matches matches2 = (Matches) featureToMatchesMap2.get(key1);
+            Matches matches1 = featureToMatchesMap1.get(key1);
+            Matches matches2 = featureToMatchesMap2.get(key1);
             if (matches1.getTopMatch() == matches2.getTopMatch()) {
                 Assert.isTrue(matches1.getTopScore() == matches2.getTopScore());
                 commonMatches.put(key1, matches1);
@@ -122,20 +120,20 @@ public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
         return commonMatches;
     }
 
-    private Map filterMatches(Map featureToMatchesMap, TaskMonitor monitor) {
+    private Map<Feature, Matches> filterMatches(Map<Feature, Matches> featureToMatchesMap, TaskMonitor monitor) {
         int featuresProcessed = 0;
         int totalFeatures = featureToMatchesMap.size();
-        HashMap newMap = new HashMap();
+        Map<Feature, Matches> newMap = new HashMap<>();
         if (featureToMatchesMap.isEmpty()) {
             return newMap;
         }
-        for (Iterator i = featureToMatchesMap.keySet().iterator();
+        for (Iterator<Feature> i = featureToMatchesMap.keySet().iterator();
             i.hasNext() && !monitor.isCancelRequested();
             ) {
-            Feature feature = (Feature) i.next();
+            Feature feature = i.next();
             featuresProcessed++;
             monitor.report(featuresProcessed, totalFeatures, "features filtered");
-            Matches oldMatches = (Matches) featureToMatchesMap.get(feature);
+            Matches oldMatches = featureToMatchesMap.get(feature);
             if (oldMatches.isEmpty()) {
                 continue;
             }
@@ -146,23 +144,23 @@ public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
         return newMap;
     }
 
-    protected Map invert(Map featureToMatchesMap, TaskMonitor monitor) {
+    protected Map<Feature, Matches> invert(Map<Feature, Matches> featureToMatchesMap, TaskMonitor monitor) {
         int featuresProcessed = 0;
         int totalFeatures = featureToMatchesMap.size();
-        HashMap newMap = new HashMap();
+        Map<Feature, Matches> newMap = new HashMap<>();
         if (featureToMatchesMap.isEmpty()) {
             return newMap;
         }
-        for (Iterator i = featureToMatchesMap.keySet().iterator();
+        for (Iterator<Feature> i = featureToMatchesMap.keySet().iterator();
             i.hasNext() && !monitor.isCancelRequested();
             ) {
-            Feature oldKey = (Feature) i.next();
+            Feature oldKey = i.next();
             featuresProcessed++;
             monitor.report(featuresProcessed, totalFeatures, "features inverted");
-            Matches oldMatches = (Matches) featureToMatchesMap.get(oldKey);
+            Matches oldMatches = featureToMatchesMap.get(oldKey);
             for (int j = 0; j < oldMatches.size(); j++) {
                 Feature newKey = oldMatches.getFeature(j);
-                Matches newMatches = (Matches) newMap.get(newKey);
+                Matches newMatches = newMap.get(newKey);
                 if (newMatches == null) {
                     newMatches = new Matches(oldKey.getSchema());
                 }
@@ -172,5 +170,4 @@ public class TopMatchDisambiguatingFCMatchFinder implements FCMatchFinder {
         }
         return newMap;
     }
-
 }

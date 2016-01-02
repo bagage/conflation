@@ -1,4 +1,3 @@
-
 /*
  * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI
  * for visualizing and manipulating spatial features with geometry and attributes.
@@ -30,15 +29,12 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jump.util;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import com.vividsolutions.jts.algorithm.CGAlgorithms;
-import com.vividsolutions.jts.algorithm.RobustCGAlgorithms;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
@@ -47,7 +43,6 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.util.Assert;
 
-
 /**
  * Some utility functions for handling Coordinate arrays;
  */
@@ -55,12 +50,6 @@ public class CoordinateArrays {
     //<<TODO:REFACTORING>> JTS already has a class named CoordinateArrays.
     //I wonder if we should collapse this class into that one. [Jon Aquino]
     // MD - yep, at some point.
-    private static final CGAlgorithms cga = new RobustCGAlgorithms();
-    private final static Coordinate[] coordArrayType = new Coordinate[0];
-
-    public static Coordinate[] toCoordinateArray(List coordList) {
-        return (Coordinate[]) coordList.toArray(coordArrayType);
-    }
 
     //<<TODO:REFACTORING>> This functionality is duplicated in
     //the protected method Geometry#reversePointOrder. Perhaps we should
@@ -121,25 +110,6 @@ public class CoordinateArrays {
     }
 
     /**
-     * Converts a collection of coordinate arrays to a collection of geometries.
-     * @param coordArrays a collection of Coordinate[]
-     * @param fact a factory used to create the Geometry's
-     * @return a collection of LineStrings and Points
-     */
-    public static List fromCoordinateArrays(List coordArrays,
-        GeometryFactory fact) {
-        List geomList = new ArrayList();
-
-        for (Iterator i = coordArrays.iterator(); i.hasNext();) {
-            Coordinate[] coords = (Coordinate[]) i.next();
-            Geometry geom = toLineOrPoint(coords, fact);
-            geomList.add(geom);
-        }
-
-        return geomList;
-    }
-
-    /**
      * Extract the coordinate arrays for a geometry into a List.
      * @param g the Geometry to extract from
      * @param coordArrayList the List to add the coordinate arrays to
@@ -147,7 +117,7 @@ public class CoordinateArrays {
      * oriented (clockwise for the shell, counterclockwise for the holes)
      */
     public static void addCoordinateArrays(Geometry g, boolean orientPolygons,
-        List coordArrayList) {
+        List<Coordinate[]> coordArrayList) {
         if (g.getDimension() <= 0) {
             return;
         } else if (g instanceof LineString) {
@@ -219,8 +189,8 @@ public class CoordinateArrays {
      * @param orientPolygons ensure that Polygons are correctly oriented
      * @return a list of Coordinate[]
      */
-    public static List toCoordinateArrays(Geometry g, boolean orientPolygons) {
-        List coordArrayList = new ArrayList();
+    public static List<Coordinate[]> toCoordinateArrays(Geometry g, boolean orientPolygons) {
+        List<Coordinate[]> coordArrayList = new ArrayList<>();
         addCoordinateArrays(g, orientPolygons, coordArrayList);
 
         return coordArrayList;

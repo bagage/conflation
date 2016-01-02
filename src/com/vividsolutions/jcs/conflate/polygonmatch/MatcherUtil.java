@@ -1,25 +1,23 @@
-
-
 /*
  * The JCS Conflation Suite (JCS) is a library of Java classes that
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -31,16 +29,15 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jcs.conflate.polygonmatch;
+
+import java.util.List;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateFilter;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jump.geom.CoordUtil;
 import com.vividsolutions.jump.util.CoordinateArrays;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Functions useful to FeatureMatchers in general.
@@ -80,9 +77,8 @@ public class MatcherUtil {
   public static Coordinate outlineCentreOfMass(Geometry g) {
     Coordinate weightedSum = new Coordinate();
     double totalLength = 0;
-    List coordArrays = CoordinateArrays.toCoordinateArrays(g, false);
-    for (Iterator i = coordArrays.iterator(); i.hasNext(); ) {
-      Coordinate[] coords = (Coordinate[]) i.next();
+    List<Coordinate[]> coordArrays = CoordinateArrays.toCoordinateArrays(g, false);
+    for (Coordinate[] coords : coordArrays) {
       for (int j = 1; j < coords.length; j++) {
         double length = coords[j-1].distance(coords[j]);
         totalLength += length;

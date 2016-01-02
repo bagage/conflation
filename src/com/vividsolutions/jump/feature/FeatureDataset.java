@@ -1,24 +1,23 @@
-
 /*
- * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI 
+ * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI
  * for visualizing and manipulating spatial features with geometry and attributes.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -30,13 +29,15 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jump.feature;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 import com.vividsolutions.jts.geom.Envelope;
-
 
 /**
  * Basic implementation of FeatureCollection.
@@ -45,7 +46,7 @@ public class FeatureDataset implements FeatureCollection {
     private FeatureSchema featureSchema;
 
     //<<TODO>> Possibly use hashtable to do spatial indexing [Jon Aquino]
-    private ArrayList features;
+    private List<Feature> features;
     private Envelope envelope = null;
 
     /**
@@ -53,8 +54,8 @@ public class FeatureDataset implements FeatureCollection {
      * @param newFeatures an initial group of features to add to this FeatureDataset
      * @param featureSchema the types of the attributes of the features in this collection
      */
-    public FeatureDataset(Collection newFeatures, FeatureSchema featureSchema) {
-        features = new ArrayList(newFeatures);
+    public FeatureDataset(Collection<Feature> newFeatures, FeatureSchema featureSchema) {
+        features = new ArrayList<>(newFeatures);
         this.featureSchema = featureSchema;
     }
 
@@ -63,14 +64,15 @@ public class FeatureDataset implements FeatureCollection {
      * @param featureSchema the types of the attributes of the features in this collection
      */
     public FeatureDataset(FeatureSchema featureSchema) {
-        this(new ArrayList(), featureSchema);
+        this(new ArrayList<>(), featureSchema);
     }
 
     public Feature getFeature(int index) {
-        return (Feature) features.get(index);
+        return features.get(index);
     }
 
-    public FeatureSchema getFeatureSchema() {
+    @Override
+	public FeatureSchema getFeatureSchema() {
         return featureSchema;
     }
 
@@ -78,12 +80,12 @@ public class FeatureDataset implements FeatureCollection {
      * Because the envelope is cached, the envelope may be incorrect if you
      * later change a Feature's geometry using Feature#setGeometry.
      */
-    public Envelope getEnvelope() {
+    @Override
+	public Envelope getEnvelope() {
         if (envelope == null) {
             envelope = new Envelope();
 
-            for (Iterator i = features.iterator(); i.hasNext();) {
-                Feature feature = (Feature) i.next();
+            for (Feature feature : features) {
                 envelope.expandToInclude(feature.getGeometry()
                                                 .getEnvelopeInternal());
             }
@@ -92,11 +94,13 @@ public class FeatureDataset implements FeatureCollection {
         return envelope;
     }
 
-    public List getFeatures() {
+    @Override
+	public List<Feature> getFeatures() {
         return Collections.unmodifiableList(features);
     }
 
-    public boolean isEmpty() {
+    @Override
+	public boolean isEmpty() {
         return size() == 0;
     }
 
@@ -107,18 +111,17 @@ public class FeatureDataset implements FeatureCollection {
 
     //<<TODO:DESIGN>> Perhaps return value should be a Set, not a List, because order
     //doesn't matter. [Jon Aquino]
-    public List query(Envelope envelope) {
+    @Override
+	public List<Feature> query(Envelope envelope) {
         if (!envelope.intersects(getEnvelope())) {
-            return new ArrayList();
+            return new ArrayList<>();
         }
 
         //<<TODO:NAMING>> Rename this method to getFeatures(Envelope), to parallel
         //getFeatures() [Jon Aquino]
-        ArrayList queryResult = new ArrayList();
+        List<Feature> queryResult = new ArrayList<>();
 
-        for (Iterator i = features.iterator(); i.hasNext();) {
-            Feature feature = (Feature) i.next();
-
+        for (Feature feature : features) {
             if (feature.getGeometry().getEnvelopeInternal().intersects(envelope)) {
                 queryResult.add(feature);
             }
@@ -127,7 +130,8 @@ public class FeatureDataset implements FeatureCollection {
         return queryResult;
     }
 
-    public void add(Feature feature) {
+    @Override
+	public void add(Feature feature) {
         features.add(feature);
         if (envelope != null) {
             envelope.expandToInclude(feature.getGeometry().getEnvelopeInternal());
@@ -147,14 +151,16 @@ public class FeatureDataset implements FeatureCollection {
      * Removes the features which intersect the given envelope
      * @param env
      */
-    public Collection remove(Envelope env) {
-        Collection features = query(env);
+    @Override
+	public Collection<Feature> remove(Envelope env) {
+        Collection<Feature> features = query(env);
         removeAll(features);
 
         return features;
     }
 
-    public void remove(Feature feature) {
+    @Override
+	public void remove(Feature feature) {
         features.remove(feature);
         invalidateEnvelope();
     }
@@ -162,16 +168,19 @@ public class FeatureDataset implements FeatureCollection {
     /**
      * Removes all features from this collection.
      */
-    public void clear() {
+    @Override
+	public void clear() {
         invalidateEnvelope();
         features.clear();
     }
 
-    public int size() {
+    @Override
+	public int size() {
         return features.size();
     }
 
-    public Iterator iterator() {
+    @Override
+	public Iterator<Feature> iterator() {
         return features.iterator();
     }
 
@@ -179,17 +188,18 @@ public class FeatureDataset implements FeatureCollection {
         envelope = null;
     }
 
-    public void addAll(Collection features) {
+    @Override
+	public void addAll(Collection<? extends Feature> features) {
         this.features.addAll(features);
         if (envelope != null) {
-            for (Iterator i = features.iterator(); i.hasNext(); ) {
-                Feature feature = (Feature) i.next();
+            for (Feature feature : features) {
                 envelope.expandToInclude(feature.getGeometry().getEnvelopeInternal());
-            }            
+            }
         }
     }
 
-    public void removeAll(Collection features) {
+    @Override
+	public void removeAll(Collection<Feature> features) {
         this.features.removeAll(features);
         invalidateEnvelope();
     }

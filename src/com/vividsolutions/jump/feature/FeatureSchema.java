@@ -1,24 +1,23 @@
-
 /*
- * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI 
+ * The Unified Mapping Platform (JUMP) is an extensible, interactive GUI
  * for visualizing and manipulating spatial features with geometry and attributes.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -30,22 +29,23 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jump.feature;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.vividsolutions.jts.util.Assert;
-
 
 public class FeatureSchema implements Cloneable {
     //<<TODO:QUESTION>> Is this an efficient implementation? Must cast the Integer to
     //an int. [Jon Aquino]
-    private HashMap attributeNameToIndexMap = new HashMap();
+    private Map<String, Integer> attributeNameToIndexMap = new HashMap<>();
     private int geometryIndex = -1;
     private int attributeCount = 0;
-    private ArrayList attributeNames = new ArrayList();
-    private ArrayList attributeTypes = new ArrayList();
+    private List<String> attributeNames = new ArrayList<>();
+    private List<AttributeType> attributeTypes = new ArrayList<>();
 
     public FeatureSchema() {
     }
@@ -57,7 +57,7 @@ public class FeatureSchema implements Cloneable {
     public int getAttributeIndex(String attributeName) {
         //<<TODO:RECONSIDER>> Attribute names are currently case sensitive.
         //I wonder whether or not this is desirable. [Jon Aquino]
-        Integer index = (Integer) attributeNameToIndexMap.get(attributeName);
+        Integer index = attributeNameToIndexMap.get(attributeName);
 
         if (index == null) {
             throw new IllegalArgumentException("Unrecognized attribute name: " +
@@ -85,11 +85,11 @@ public class FeatureSchema implements Cloneable {
     }
 
     public String getAttributeName(int attributeIndex) {
-        return (String) attributeNames.get(attributeIndex);
+        return attributeNames.get(attributeIndex);
     }
 
     public AttributeType getAttributeType(int attributeIndex) {
-        return (AttributeType) attributeTypes.get(attributeIndex);
+        return attributeTypes.get(attributeIndex);
     }
 
     public AttributeType getAttributeType(String attributeName) {
@@ -120,7 +120,8 @@ public class FeatureSchema implements Cloneable {
      *@return    true if the two metadatas have the same attribute names with the
      *      same types in the same order
      */
-    public boolean equals(Object other) {
+    @Override
+	public boolean equals(Object other) {
         return this.equals(other, false);
     }
     public boolean equals(Object other, boolean orderMatters) {
@@ -135,12 +136,12 @@ public class FeatureSchema implements Cloneable {
         }
 
         for (int i = 0; i < attributeNames.size(); i++) {
-            String attributeName = (String) attributeNames.get(i);
-            
+            String attributeName = attributeNames.get(i);
+
             if (!otherFeatureSchema.attributeNames.contains(attributeName)) {
                 return false;
             }
-            
+
             if (orderMatters && !otherFeatureSchema.attributeNames.get(i).equals(attributeName)) {
                 return false;
             }
@@ -154,7 +155,8 @@ public class FeatureSchema implements Cloneable {
         return true;
     }
 
-    public Object clone() {
+    @Override
+	public Object clone() {
         try {
             return super.clone();
         } catch (CloneNotSupportedException ex) {

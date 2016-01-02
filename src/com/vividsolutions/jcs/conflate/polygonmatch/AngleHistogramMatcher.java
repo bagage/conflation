@@ -3,21 +3,21 @@
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -30,14 +30,14 @@
  * www.vividsolutions.com
  */
 package com.vividsolutions.jcs.conflate.polygonmatch;
+import java.util.List;
+
+import com.vividsolutions.jcs.geom.Angle;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jcs.geom.Angle;
 import com.vividsolutions.jump.util.CoordinateArrays;
-import java.util.Iterator;
-import java.util.List;
 /**
  * Matches geometries by comparing their "angle histograms". An angle histogram
  * is a histogram of segment angles (with the positive x-axis), weighted by
@@ -90,11 +90,10 @@ public class AngleHistogramMatcher extends IndependentCandidateMatcher {
         clone.normalize();
         //In #toCoordinateArrays call, set orientPolygons=false because
         //#normalize takes care of orienting the rings. [Jon Aquino]
-        List lineStrings = CoordinateArrays.toCoordinateArrays(clone, false);
+        List<Coordinate[]> lineStrings = CoordinateArrays.toCoordinateArrays(clone, false);
         Histogram h = new Histogram(binCount);
-        for (Iterator i = lineStrings.iterator(); i.hasNext();) {
-            Coordinate[] lineString = (Coordinate[]) i.next();
-            h.add(angleHistogram(lineString, binCount));
+        for (Coordinate[] c : lineStrings) {
+            h.add(angleHistogram(c, binCount));
         }
         return h;
     }

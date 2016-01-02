@@ -1,25 +1,23 @@
-
-
 /*
  * The Java Conflation Suite (JCS) is a library of Java classes that
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -31,17 +29,30 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jcs.conflate.polygonmatch;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.util.Assert;
-import com.vividsolutions.jump.feature.*;
+import com.vividsolutions.jump.feature.BasicFeature;
+import com.vividsolutions.jump.feature.Feature;
+import com.vividsolutions.jump.feature.FeatureCollection;
+import com.vividsolutions.jump.feature.FeatureDataset;
+import com.vividsolutions.jump.feature.FeatureSchema;
+import com.vividsolutions.jump.feature.IndexedFeatureCollection;
 import com.vividsolutions.jump.task.TaskMonitor;
 import com.vividsolutions.jump.util.CollectionMap;
 import com.vividsolutions.jump.util.CollectionUtil;
 import com.vividsolutions.jump.util.CoordinateArrays;
-import java.util.*;
 
 /**
  *  An FCMatchFinder wrapper that also treats pairs of adjacent target features
@@ -75,11 +86,12 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
     this.matchFinder = new OneToOneFCMatchFinder(matchFinder);
   }
 
-  public Map match(IndexedFeatureCollection targetFC, IndexedFeatureCollection candidateFC,
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+public Map<Feature, Matches> match(IndexedFeatureCollection targetFC, IndexedFeatureCollection candidateFC,
       TaskMonitor monitor) {
     monitor.allowCancellationRequests();
     FeatureCollection compositeTargetFC = new FeatureDataset(targetFC.getFeatureSchema());
-    CollectionMap constituentToCompositesMap = new CollectionMap();
+    CollectionMap<Feature, CompositeFeature> constituentToCompositesMap = new CollectionMap<>();
     createComposites(targetFC, constituentToCompositesMap, compositeTargetFC, monitor);
     Map targetFeatureToMatchesMap = matchFinder.match(
         new IndexedFeatureCollection(compositeTargetFC),
@@ -88,10 +100,11 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
     return splitComposites(targetFeatureToMatchesMap, monitor);
   }
 
-  protected void createComposites(FeatureCollection fc, CollectionMap constituentToCompositesMap, FeatureCollection compositeFC, TaskMonitor monitor) {
+  protected void createComposites(FeatureCollection fc, CollectionMap<Feature, CompositeFeature> constituentToCompositesMap,
+		  FeatureCollection compositeFC, TaskMonitor monitor) {
     Assert.isTrue(constituentToCompositesMap.isEmpty());
     Assert.isTrue(compositeFC.isEmpty());
-    Set composites = createCompositeSet(fc, monitor);
+    Set<CompositeFeature> composites = createCompositeSet(fc, monitor);
     add(composites, constituentToCompositesMap, monitor);
     add(composites, compositeFC, monitor);
   }
@@ -101,22 +114,22 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
    *  with other composites but having a lower match score than any of the other
    *  composites.
    */
-  protected void deleteInferiorComposites(Map compositeToMatchesMap, CollectionMap constituentToCompositesMap, TaskMonitor monitor) {
+  protected void deleteInferiorComposites(Map<CompositeFeature, Matches> compositeToMatchesMap,
+		  CollectionMap<Feature, CompositeFeature> constituentToCompositesMap, TaskMonitor monitor) {
     monitor.report("Discarding inferior composites");
     int featuresProcessed = 0;
     int totalFeatures = constituentToCompositesMap.size();
-    for (Iterator i = constituentToCompositesMap.keySet().iterator(); i.hasNext() && ! monitor.isCancelRequested(); ) {
-      Feature constituent = (Feature) i.next();
+    for (Iterator<Feature> i = constituentToCompositesMap.keySet().iterator(); i.hasNext() && ! monitor.isCancelRequested(); ) {
+      Feature constituent = i.next();
       featuresProcessed++;
       monitor.report(featuresProcessed, totalFeatures, "features");
-      Collection composites = constituentToCompositesMap.getItems(constituent);
+      Collection<CompositeFeature> composites = constituentToCompositesMap.getItems(constituent);
       Assert.isTrue(!composites.isEmpty());
       double bestScore = -1;
       CompositeFeature bestComposite = null;
       Matches bestMatches = null;
-      for (Iterator j = composites.iterator(); j.hasNext(); ) {
-        CompositeFeature composite = (CompositeFeature) j.next();
-        Matches matches = (Matches) compositeToMatchesMap.get(composite);
+      for (CompositeFeature composite : composites) {
+        Matches matches = compositeToMatchesMap.get(composite);
         if (matches == null) {
           continue;
         }
@@ -134,11 +147,10 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
     }
   }
 
-  protected List featuresWithCommonEdge(Feature feature, FeatureCollection fc) {
-    ArrayList featuresWithCommonEdge = new ArrayList();
-    List candidates = fc.query(feature.getGeometry().getEnvelopeInternal());
-    for (Iterator i = candidates.iterator(); i.hasNext(); ) {
-      Feature candidate = (Feature) i.next();
+  protected List<Feature> featuresWithCommonEdge(Feature feature, FeatureCollection fc) {
+    List<Feature> featuresWithCommonEdge = new ArrayList<>();
+    List<Feature> candidates = fc.query(feature.getGeometry().getEnvelopeInternal());
+    for (Feature candidate : candidates) {
       if (feature == candidate || shareEdge(feature.getGeometry(), candidate.getGeometry())) {
         featuresWithCommonEdge.add(candidate);
       }
@@ -147,21 +159,20 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
   }
 
   protected boolean shareEdge(Geometry a, Geometry b) {
-    Set aEdges = edges(a);
-    Set bEdges = edges(b);
-    for (Iterator i = bEdges.iterator(); i.hasNext(); ) {
-      Edge bEdge = (Edge) i.next();
+    Set<Edge> aEdges = edges(a);
+    Set<Edge> bEdges = edges(b);
+    for (Edge bEdge : bEdges) {
       if (aEdges.contains(bEdge)) { return true; }
     }
     return false;
   }
 
     @Override
-    public Map match(FeatureCollection targetFC, FeatureCollection candidateFC, TaskMonitor monitor) {
+    public Map<Feature, Matches> match(FeatureCollection targetFC, FeatureCollection candidateFC, TaskMonitor monitor) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-  private static class Edge implements Comparable {
+  private static class Edge implements Comparable<Edge> {
     private Coordinate p0, p1;
     public Edge(Coordinate a, Coordinate b) {
       if (a.compareTo(b) < 1) {
@@ -174,18 +185,16 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
       }
     }
         @Override
-    public int compareTo(Object o) {
-      Edge other = (Edge) o;
+    public int compareTo(Edge other) {
       int result = p0.compareTo(other.p0);
       if (result != 0) return result;
       return p1.compareTo(other.p1);
     }
   }
 
-  private Set edges(Geometry g) {
-    TreeSet edges = new TreeSet();
-    for (Iterator i = CoordinateArrays.toCoordinateArrays(g, false).iterator(); i.hasNext(); ) {
-      Coordinate[] coordinates = (Coordinate[]) i.next();
+  private Set<Edge> edges(Geometry g) {
+    Set<Edge> edges = new TreeSet<>();
+    for (Coordinate[] coordinates : CoordinateArrays.toCoordinateArrays(g, false)) {
       for (int j = 1; j < coordinates.length; j++) { //1
         edges.add(new Edge(coordinates[j], coordinates[j-1]));
       }
@@ -196,21 +205,20 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
   /**
    *  Splits each composite target into its constituent features.
    */
-  protected Map splitComposites(Map compositeToMatchesMap, TaskMonitor monitor) {
+  protected Map<Feature, Matches> splitComposites(Map<CompositeFeature, Matches> compositeToMatchesMap, TaskMonitor monitor) {
     monitor.report("Splitting composites");
     int compositesProcessed = 0;
     int totalComposites = compositeToMatchesMap.size();
-    Map newMap = new HashMap();
-    for (Iterator i = compositeToMatchesMap.keySet().iterator(); i.hasNext() && ! monitor.isCancelRequested(); ) {
-      CompositeFeature composite = (CompositeFeature) i.next();
+    Map<Feature, Matches> newMap = new HashMap<>();
+    for (Iterator<CompositeFeature> i = compositeToMatchesMap.keySet().iterator(); i.hasNext() && ! monitor.isCancelRequested(); ) {
+      CompositeFeature composite = i.next();
       compositesProcessed++;
       monitor.report(compositesProcessed, totalComposites, "composites");
-      Matches matches = (Matches) compositeToMatchesMap.get(composite);
+      Matches matches = compositeToMatchesMap.get(composite);
       //Because we use OneToOneFCMatchFinder, all targets will be associated
       //with one and only one match.
       Assert.isTrue(1 == matches.size());
-      for (Iterator j = composite.getFeatures().iterator(); j.hasNext(); ) {
-        Feature constituent = (Feature) j.next();
+      for (Feature constituent : composite.getFeatures()) {
         Assert.isTrue(!newMap.containsKey(constituent));
         Matches matchesCopy = new Matches(matches.getFeatureSchema());
         matchesCopy.add(matches.getTopMatch(), matches.getTopScore());
@@ -220,59 +228,60 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
     return newMap;
   }
 
-  private Set createCompositeSet(FeatureCollection fc, TaskMonitor monitor) {
+  private Set<CompositeFeature> createCompositeSet(FeatureCollection fc, TaskMonitor monitor) {
     monitor.report("Creating composites of adjacent features");
     int featuresProcessed = 0;
     int totalFeatures = fc.getFeatures().size();
     //Use a Set to prevent duplicate composites [Jon Aquino]
-    HashSet composites = new HashSet();
-    for (Iterator i = fc.getFeatures().iterator(); i.hasNext() && !monitor.isCancelRequested(); ) {
-      Feature feature = (Feature) i.next();
+    Set<CompositeFeature> composites = new HashSet<>();
+    for (Iterator<Feature> i = fc.getFeatures().iterator(); i.hasNext() && !monitor.isCancelRequested(); ) {
+      Feature feature = i.next();
       featuresProcessed++;
       monitor.report(featuresProcessed, totalFeatures, "features");
-      List featuresWithCommonEdge = featuresWithCommonEdge(feature, fc);
-      for (Iterator j = CollectionUtil.combinations(
+      List<Feature> featuresWithCommonEdge = featuresWithCommonEdge(feature, fc);
+      for (Iterator<List<Feature>> j = CollectionUtil.combinations(
           featuresWithCommonEdge, maxCompositeSize, feature).iterator(); j.hasNext() && !monitor.isCancelRequested(); ) {
-        List combination = (List) j.next();
+        List<Feature> combination = j.next();
         composites.add(new CompositeFeature(fc.getFeatureSchema(), combination));
       }
     }
     return composites;
   }
 
-  private void add(Set composites, CollectionMap constituentToCompositesMap, TaskMonitor monitor) {
+  private void add(Set<CompositeFeature> composites, CollectionMap<Feature, CompositeFeature> constituentToCompositesMap,
+		  TaskMonitor monitor) {
     monitor.report("Creating feature-to-composite map");
     int compositesProcessed = 0;
     int totalComposites = composites.size();
-    for (Iterator i = composites.iterator(); i.hasNext() && !monitor.isCancelRequested(); ) {
-      CompositeFeature composite = (CompositeFeature) i.next();
+    for (Iterator<CompositeFeature> i = composites.iterator(); i.hasNext() && !monitor.isCancelRequested(); ) {
+      CompositeFeature composite = i.next();
       compositesProcessed++;
       monitor.report(compositesProcessed, totalComposites, "composites");
-      for (Iterator j = composite.getFeatures().iterator(); j.hasNext() && !monitor.isCancelRequested(); ) {
-        Feature constituent = (Feature) j.next();
+      for (Iterator<Feature> j = composite.getFeatures().iterator(); j.hasNext() && !monitor.isCancelRequested(); ) {
+        Feature constituent = j.next();
         constituentToCompositesMap.addItem(constituent, composite);
       }
     }
   }
 
   public static class CompositeFeature extends BasicFeature {
-    private List features;
+    private List<Feature> features;
     private int hashCode;
 
-    public CompositeFeature(FeatureSchema schema, List features) {
+    public CompositeFeature(FeatureSchema schema, List<Feature> features) {
       super(schema);
       this.features = features;
-      Geometry union = ((Feature) features.get(0)).getGeometry();
-      hashCode = ((Feature) features.get(0)).hashCode();
+      Geometry union = features.get(0).getGeometry();
+      hashCode = features.get(0).hashCode();
       for (int i = 1; i < features.size(); i++) {
-        Feature feature = (Feature) features.get(i);
+        Feature feature = features.get(i);
         union = union.union(feature.getGeometry());
         hashCode = Math.min(hashCode, feature.hashCode());
       }
       setGeometry(union);
     }
 
-    public List getFeatures() {
+    public List<Feature> getFeatures() {
       return features;
     }
 
@@ -283,8 +292,7 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
       if (features.size() != other.features.size()) {
         return false;
       }
-      for (Iterator i = features.iterator(); i.hasNext(); ) {
-        Feature myFeature = (Feature) i.next();
+      for (Feature myFeature : features) {
         if (!other.features.contains(myFeature)) {
           return false;
         }
@@ -298,9 +306,8 @@ public class CombinatorialFCMatchFinder implements FCMatchFinder {
     }
   }
 
-  private void add(Collection features, FeatureCollection fc, TaskMonitor monitor) {
+  private void add(Collection<CompositeFeature> features, FeatureCollection fc, TaskMonitor monitor) {
     monitor.report("Building feature-collection");
     fc.addAll(features);
   }
-
 }

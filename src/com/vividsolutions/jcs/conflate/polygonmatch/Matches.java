@@ -1,25 +1,23 @@
-
-
 /*
  * The JCS Conflation Suite (JCS) is a library of Java classes that
  * can be used to build automated or semi-automated conflation solutions.
  *
  * Copyright (C) 2003 Vivid Solutions
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- * 
+ *
  * For more information, contact:
  *
  * Vivid Solutions
@@ -31,8 +29,12 @@
  * (250)385-6040
  * www.vividsolutions.com
  */
-
 package com.vividsolutions.jcs.conflate.polygonmatch;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.util.Assert;
@@ -40,10 +42,6 @@ import com.vividsolutions.jump.feature.Feature;
 import com.vividsolutions.jump.feature.FeatureCollection;
 import com.vividsolutions.jump.feature.FeatureDataset;
 import com.vividsolutions.jump.feature.FeatureSchema;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * A FeatureCollection that stores the "score" of each Feature.  The score is
@@ -61,7 +59,7 @@ public class Matches implements FeatureCollection, Cloneable {
     }
 
     @Override
-    protected Object clone() {
+    protected Matches clone() {
         Matches clone = new Matches(dataset.getFeatureSchema());
         for (int i = 0; i < size(); i++) {
             clone.add(getFeature(i), getScore(i));
@@ -75,16 +73,15 @@ public class Matches implements FeatureCollection, Cloneable {
      * this Matches object
      * @param features added to the Matches, each with the max score (1.0)
      */
-    public Matches(FeatureSchema schema, List features) {
+    public Matches(FeatureSchema schema, List<Feature> features) {
         this(schema);
-        for (Iterator i = features.iterator(); i.hasNext();) {
-            Feature match = (Feature) i.next();
+        for (Feature match : features) {
             add(match, 1);
         }
     }
 
     private FeatureDataset dataset;
-    private ArrayList scores = new ArrayList();
+    private List<Double> scores = new ArrayList<>();
 
     /**
      * This method is not supported, because added features need to be associated
@@ -92,7 +89,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * @param feature a feature to add as a match
      * @see #add(Feature, double)
      */
-    public void add(Feature feature) {
+    @Override
+	public void add(Feature feature) {
         throw new UnsupportedOperationException("Use #add(feature, score) instead");
     }
 
@@ -100,7 +98,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * This method is not supported, because added features need to be associated
      * with a score. Use #add(Feature, double) instead.
      */
-    public void addAll(Collection features) {
+    @Override
+	public void addAll(Collection<? extends Feature> features) {
         throw new UnsupportedOperationException("Use #add(feature, score) instead");
     }
 
@@ -118,7 +117,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * This method is not supported, because Matches should not normally need to
      * have matches removed.
      */
-    public Collection remove(Envelope envelope) {
+    @Override
+	public Collection<Feature> remove(Envelope envelope) {
         //If we decide to implement this, remember to remove the corresponding
         //score. [Jon Aquino]
         throw new UnsupportedOperationException();
@@ -128,7 +128,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * This method is not supported, because Matches should not normally need to
      * have matches removed.
      */
-    public void clear() {
+    @Override
+	public void clear() {
         //If we decide to implement this, remember to remove the corresponding
         //score. [Jon Aquino]
         throw new UnsupportedOperationException();
@@ -138,7 +139,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * This method is not supported, because Matches should not normally need to
      * have matches removed.
      */
-    public void removeAll(Collection features) {
+    @Override
+	public void removeAll(Collection<Feature> features) {
         //If we decide to implement this, remember to remove the corresponding
         //score. [Jon Aquino]
         throw new UnsupportedOperationException();
@@ -149,7 +151,8 @@ public class Matches implements FeatureCollection, Cloneable {
      * have matches removed.
      * @param feature a feature to remove
      */
-    public void remove(Feature feature) {
+    @Override
+	public void remove(Feature feature) {
         //If we decide to implement this, remember to remove the corresponding
         //score. [Jon Aquino]
         throw new UnsupportedOperationException();
@@ -192,22 +195,26 @@ public class Matches implements FeatureCollection, Cloneable {
      * @return the confidence of the ith match
      */
     public double getScore(int i) {
-        return ((Double) scores.get(i)).doubleValue();
+        return scores.get(i).doubleValue();
     }
 
-    public FeatureSchema getFeatureSchema() {
+    @Override
+	public FeatureSchema getFeatureSchema() {
         return dataset.getFeatureSchema();
     }
 
-    public Envelope getEnvelope() {
+    @Override
+	public Envelope getEnvelope() {
         return dataset.getEnvelope();
     }
 
-    public int size() {
+    @Override
+	public int size() {
         return dataset.size();
     }
 
-    public boolean isEmpty() {
+    @Override
+	public boolean isEmpty() {
         return dataset.isEmpty();
     }
 
@@ -215,15 +222,18 @@ public class Matches implements FeatureCollection, Cloneable {
         return dataset.getFeature(index);
     }
 
-    public List getFeatures() {
+    @Override
+	public List<Feature> getFeatures() {
         return dataset.getFeatures();
     }
 
-    public Iterator iterator() {
+    @Override
+	public Iterator<Feature> iterator() {
         return dataset.iterator();
     }
 
-    public List query(Envelope envelope) {
+    @Override
+	public List<Feature> query(Envelope envelope) {
         return dataset.query(envelope);
     }
 }
