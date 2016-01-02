@@ -64,7 +64,7 @@ public class FeatureDataset implements FeatureCollection {
      * @param featureSchema the types of the attributes of the features in this collection
      */
     public FeatureDataset(FeatureSchema featureSchema) {
-        this(new ArrayList<>(), featureSchema);
+        this(new ArrayList<Feature>(), featureSchema);
     }
 
     public Feature getFeature(int index) {
