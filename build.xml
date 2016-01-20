@@ -9,27 +9,24 @@
     <property name="plugin.dist.dir" value="../../dist" />
     <property name="plugin.jar" value="${plugin.dist.dir}/conflation.jar" />
     <property name="josm" location="../../core/dist/josm-custom.jar"/>
-    <property name="jts.plugin.jar" location="${plugin.dist.dir}/jts.jar"/>  
+    <property name="jts.plugin.jar" location="${plugin.dist.dir}/jts.jar"/>
     <property name="utilsplugin2.plugin.jar" location="${plugin.dist.dir}/utilsplugin2.jar"/>
-	
+
     <target name="init">
         <available file="build.properties" property="build.properties.present" />
-        <fail unless="build.properties.present">**				
+        <fail unless="build.properties.present">**
             ** Property file 'build.properties' doesn't exist.
             ** Create a copy from 'build.properties.template' and update the properties
             ** according to your local environment.
         </fail>
         <property file="build.properties" />
-		
+
         <path id="compile.path">
             <pathelement location="${josm}" />
             <pathelement location="${jts.plugin.jar}"/>
             <pathelement location="${utilsplugin2.plugin.jar}"/>
-            <fileset dir="lib">
-                <include name="**/*.jar"/>
-            </fileset>
         </path>
-		
+
         <mkdir dir="${plugin.build.dir}" />
     </target>
 
@@ -62,7 +59,6 @@
                 <include name="README.*" />
                 <include name="LICENSE.*" />
             </fileset>
-            <zipfileset src="lib/miglayout-4.0-swing.jar"/>
         </copy>
 
         <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}" manifestencoding="UTF-8">
@@ -75,9 +71,9 @@
                 <attribute name="Plugin-Link" value="https://wiki.openstreetmap.org/wiki/JOSM/Plugins/Conflation" />
                 <attribute name="Plugin-Mainversion" value="${josm.required.version}" />
                 <attribute name="Plugin-Requires" value="jts;utilsplugin2"/>
-                <attribute name="Plugin-Version" value="${plugin.version}" />	
+                <attribute name="Plugin-Version" value="${plugin.version}" />
             </manifest>
-        </jar> 
+        </jar>
     </target>
 
     <target name="clean" description="Clean the build environment">
@@ -96,5 +92,5 @@
     <target name="dev-install" depends="dist">
         <echo>Installing the plugin in ${local.install.path}</echo>
         <copy file="${plugin.jar}" todir="${local.install.path}" />
-    </target>	
+    </target>
 </project>
