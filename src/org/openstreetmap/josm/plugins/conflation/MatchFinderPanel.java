@@ -8,13 +8,12 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.CompoundBorder;
-
-import net.miginfocom.swing.MigLayout;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.AbstractDistanceMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.BasicFCMatchFinder;
@@ -74,16 +73,28 @@ public class MatchFinderPanel extends JPanel {
         SpinnerNumberModel threshDistanceSpinnerModel;
 
         public DistanceComponent(String title) {
-            setBorder(BorderFactory.createTitledBorder(title));
-            setLayout(new MigLayout());
+            setBorder(new CompoundBorder(
+                    BorderFactory.createTitledBorder(tr(title)),
+                    BorderFactory.createEmptyBorder(5,5,5,5)));
+
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
+
             JLabel threshDistanceLabel = new JLabel(tr("Threshold distance"));
-            threshDistanceLabel.setToolTipText(tr("Distances greater than this will result in a score of zero."));
+            threshDistanceLabel.setToolTipText(
+                    tr("Distances greater than this will result in a score of zero."));
             //TODO: how to set reasonable default?
             threshDistanceSpinnerModel = new SpinnerNumberModel(20, 0, Double.MAX_VALUE, 1);
             JSpinner threshDistanceSpinner = new JSpinner(threshDistanceSpinnerModel);
-            threshDistanceSpinner.setMaximumSize(new Dimension(100, 20));
-            add(threshDistanceLabel);
-            add(threshDistanceSpinner);
+            JFormattedTextField spinnerTextField = (
+                    (JSpinner.DefaultEditor) threshDistanceSpinner.getEditor()
+                    ).getTextField();
+            spinnerTextField.setColumns(10);
+
+            panel.add(threshDistanceLabel);
+            panel.add(Box.createRigidArea(new Dimension(5, 0)));
+            panel.add(threshDistanceSpinner);
+            add(panel);
         }
     }
 
