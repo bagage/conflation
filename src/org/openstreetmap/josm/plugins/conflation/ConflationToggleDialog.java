@@ -82,8 +82,8 @@ import com.vividsolutions.jump.feature.FeatureSchema;
 import com.vividsolutions.jump.task.TaskMonitor;
 
 public class ConflationToggleDialog extends ToggleDialog
-        implements EditLayerChangeListener, SelectionChangedListener, DataSetListener,
-        SimpleMatchListListener {
+implements EditLayerChangeListener, SelectionChangedListener, DataSetListener,
+SimpleMatchListListener {
 
     public final static String TITLE_PREFIX = tr("Conflation");
     public final static String PREF_PREFIX = "conflation";
@@ -180,12 +180,12 @@ public class ConflationToggleDialog extends ToggleDialog
         conflateAction = new ConflateAction();
         final SideButton conflateButton = new SideButton(conflateAction);
         // TODO: don't need this arrow box now, but likely will shortly
-//        conflateButton.createArrow(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                ConflatePopupMenu.launch(conflateButton);
-//            }
-//        });
+        // conflateButton.createArrow(new ActionListener() {
+        //     @Override
+        //     public void actionPerformed(ActionEvent e) {
+        //         ConflatePopupMenu.launch(conflateButton);
+        //     }
+        // });
 
         removeAction = new RemoveAction();
 
@@ -202,13 +202,13 @@ public class ConflationToggleDialog extends ToggleDialog
         referenceOnlyListModel.addListDataListener(unmatchedListener);
 
         createLayout(tabbedPane, true, Arrays.asList(new SideButton[]{
-                    new SideButton(new ConfigureAction()),
-                    conflateButton,
-                    new SideButton(removeAction)
-//                    new SideButton("Replace Geometry", false),
-//                    new SideButton("Merge Tags", false),
-//                    new SideButton("Remove", false)
-                }));
+                new SideButton(new ConfigureAction()),
+                conflateButton,
+                new SideButton(removeAction)
+                // new SideButton("Replace Geometry", false),
+                // new SideButton("Merge Tags", false),
+                // new SideButton("Remove", false)
+        }));
     }
 
     @Override
@@ -378,7 +378,7 @@ public class ConflationToggleDialog extends ToggleDialog
 
     class ColorTableCellRenderer extends JLabel implements TableCellRenderer {
 
-        private String columnName;
+        private final String columnName;
 
         public ColorTableCellRenderer(String column) {
             this.columnName = column;
@@ -428,7 +428,7 @@ public class ConflationToggleDialog extends ToggleDialog
      * Command to delete selected matches.
      */
     class RemoveMatchCommand extends Command {
-        private Collection<SimpleMatch> toRemove;
+        private final Collection<SimpleMatch> toRemove;
         public RemoveMatchCommand(Collection<SimpleMatch> toRemove) {
             this.toRemove = toRemove;
         }
@@ -459,8 +459,8 @@ public class ConflationToggleDialog extends ToggleDialog
     }
 
     class RemoveUnmatchedObjectCommand extends Command {
-        private UnmatchedObjectListModel model;
-        private Collection<OsmPrimitive> objects;
+        private final UnmatchedObjectListModel model;
+        private final Collection<OsmPrimitive> objects;
 
         public RemoveUnmatchedObjectCommand(UnmatchedObjectListModel model,
                 Collection<OsmPrimitive> objects) {
@@ -530,11 +530,11 @@ public class ConflationToggleDialog extends ToggleDialog
                 else
                     setEnabled(false);
             } else if (selComponent.equals(referenceOnlyList) &&
-                       !referenceOnlyList.getSelectedValuesList().isEmpty()) {
-                    setEnabled(true);
+                    !referenceOnlyList.getSelectedValuesList().isEmpty()) {
+                setEnabled(true);
             } else if (selComponent.equals(subjectOnlyList) &&
-                       !subjectOnlyList.getSelectedValuesList().isEmpty()) {
-                    setEnabled(true);
+                    !subjectOnlyList.getSelectedValuesList().isEmpty()) {
+                setEnabled(true);
             } else {
                 setEnabled(false);
             }
@@ -566,7 +566,7 @@ public class ConflationToggleDialog extends ToggleDialog
             // TODO: make sure shortcuts make sense
             super(tr("Conflate"), "dialogs/conflation", tr("Conflate selected objects"),
                     Shortcut.registerShortcut("conflation:replace", tr("Conflation: {0}", tr("Replace")),
-                    KeyEvent.VK_F, Shortcut.ALT_CTRL), false);
+                            KeyEvent.VK_F, Shortcut.ALT_CTRL), false);
         }
 
         @Override
@@ -610,12 +610,12 @@ public class ConflationToggleDialog extends ToggleDialog
             }
 
             // FIXME: ReplaceGeometry changes relations, so can't put it in a SequenceCommand
-//            if (cmds.size() == 1) {
-//                Main.main.undoRedo.add(cmds.iterator().next());
-//            } else if (cmds.size() > 1) {
-//                SequenceCommand seqCmd = new SequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds);
-//                Main.main.undoRedo.add(seqCmd);
-//            }
+            // if (cmds.size() == 1) {
+            //     Main.main.undoRedo.add(cmds.iterator().next());
+            // } else if (cmds.size() > 1) {
+            //     SequenceCommand seqCmd = new SequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds);
+            //     Main.main.undoRedo.add(seqCmd);
+            // }
 
             if (matches.getSelected().isEmpty())
                 matches.setSelected(nextSelection);
@@ -887,13 +887,13 @@ public class ConflationToggleDialog extends ToggleDialog
 
         //TODO: pass to MatchFinderPanel to use as hint/default for DistanceMatchers
         // get maximum possible distance so scores can be scaled (FIXME: not quite accurate)
-//        Envelope envelope = refColl.getEnvelope();
-//        envelope.expandToInclude(subColl.getEnvelope());
-//        double maxDistance = Point2D.distance(
-//            envelope.getMinX(),
-//            envelope.getMinY(),
-//            envelope.getMaxX(),
-//            envelope.getMaxY());
+        // Envelope envelope = refColl.getEnvelope();
+        // envelope.expandToInclude(subColl.getEnvelope());
+        // double maxDistance = Point2D.distance(
+        //     envelope.getMinX(),
+        //     envelope.getMinY(),
+        //     envelope.getMaxX(),
+        //     envelope.getMaxY());
 
         // build matcher
         FCMatchFinder finder = settings.getMatchFinder();
@@ -901,7 +901,7 @@ public class ConflationToggleDialog extends ToggleDialog
         // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
         // FIXME: fix match functions to work on point/linestring features as well
         // find matches
-		Map<Feature, Matches> map = finder.match(refColl, subColl, monitor);
+        Map<Feature, Matches> map = finder.match(refColl, subColl, monitor);
 
         monitor.subTask("Finishing match list");
 
@@ -954,7 +954,7 @@ public class ConflationToggleDialog extends ToggleDialog
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
         }
-//        matches.addConflationListChangedListener(conflationLayer);
+        // matches.addConflationListChangedListener(conflationLayer);
     }
 
     class UnmatchedListDataListener implements ListDataListener {
