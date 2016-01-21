@@ -30,6 +30,7 @@ import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
@@ -173,9 +174,9 @@ SimpleMatchListListener {
         subjectOnlyList.addMouseListener(dblClickHandler);
 
         tabbedPane = new JTabbedPane();
-        tabbedPane.addTab(tr("Matches"), matchTable);
-        tabbedPane.addTab(tr("Reference only"), referenceOnlyList);
-        tabbedPane.addTab(tr("Subject only"), subjectOnlyList);
+        tabbedPane.addTab(tr("Matches"), new JScrollPane(matchTable));
+        tabbedPane.addTab(tr("Reference only"), new JScrollPane(referenceOnlyList));
+        tabbedPane.addTab(tr("Subject only"), new JScrollPane(subjectOnlyList));
 
         conflateAction = new ConflateAction();
         final SideButton conflateButton = new SideButton(conflateAction);
@@ -201,7 +202,7 @@ SimpleMatchListListener {
         subjectOnlyListModel.addListDataListener(unmatchedListener);
         referenceOnlyListModel.addListDataListener(unmatchedListener);
 
-        createLayout(tabbedPane, true, Arrays.asList(new SideButton[]{
+        createLayout(tabbedPane, false, Arrays.asList(new SideButton[]{
                 new SideButton(new ConfigureAction()),
                 conflateButton,
                 new SideButton(removeAction)
@@ -237,24 +238,31 @@ SimpleMatchListListener {
     }
 
     private void updateTabTitles() {
-        tabbedPane.setTitleAt(tabbedPane.indexOfComponent(matchTable),
+        tabbedPane.setTitleAt(
+                tabbedPane.indexOfComponent(matchTable.getParent().getParent()),
                 tr(marktr("Matches ({0})"), matches.size()));
-        tabbedPane.setTitleAt(tabbedPane.indexOfComponent(referenceOnlyList),
+        tabbedPane.setTitleAt(
+                tabbedPane.indexOfComponent(referenceOnlyList.getParent().getParent()),
                 tr(marktr("Reference only ({0})"), referenceOnlyListModel.size()));
-        tabbedPane.setTitleAt(tabbedPane.indexOfComponent(subjectOnlyList),
+        tabbedPane.setTitleAt(
+                tabbedPane.indexOfComponent(subjectOnlyList.getParent().getParent()),
                 tr(marktr("Subject only ({0})"), subjectOnlyListModel.size()));
+    }
+
+    private Component getSelectedTabComponent() {
+        return ((JScrollPane) tabbedPane.getSelectedComponent()).getViewport().getView();
     }
 
     private List<OsmPrimitive> getSelectedReferencePrimitives() {
         List<OsmPrimitive> selection = new ArrayList<>();
-        if (tabbedPane == null || tabbedPane.getSelectedComponent() == null)
+        if (tabbedPane == null || getSelectedTabComponent() == null)
             return selection;
 
-        if (tabbedPane.getSelectedComponent().equals(matchTable)) {
+        if (getSelectedTabComponent().equals(matchTable)) {
             for (SimpleMatch c : matches.getSelected()) {
                 selection.add(c.getReferenceObject());
             }
-        } else if (tabbedPane.getSelectedComponent().equals(referenceOnlyList)) {
+        } else if (getSelectedTabComponent().equals(referenceOnlyList)) {
             selection.addAll(referenceOnlyList.getSelectedValuesList());
         }
         return selection;
@@ -262,14 +270,14 @@ SimpleMatchListListener {
 
     private List<OsmPrimitive> getSelectedSubjectPrimitives() {
         List<OsmPrimitive> selection = new ArrayList<>();
-        if (tabbedPane == null || tabbedPane.getSelectedComponent() == null)
+        if (tabbedPane == null || getSelectedTabComponent() == null)
             return selection;
 
-        if (tabbedPane.getSelectedComponent().equals(matchTable)) {
+        if (getSelectedTabComponent().equals(matchTable)) {
             for (SimpleMatch c : matches.getSelected()) {
                 selection.add(c.getSubjectObject());
             }
-        } else if (tabbedPane.getSelectedComponent().equals(subjectOnlyList)) {
+        } else if (getSelectedTabComponent().equals(subjectOnlyList)) {
             selection.addAll(subjectOnlyList.getSelectedValuesList());
         }
         return selection;
@@ -506,7 +514,7 @@ SimpleMatchListListener {
         }
         @Override
         public void actionPerformed(ActionEvent e) {
-            Component selComponent = tabbedPane.getSelectedComponent();
+            Component selComponent = getSelectedTabComponent();
             if (selComponent.equals(matchTable)) {
                 Main.main.undoRedo.add(new RemoveMatchCommand(matches.getSelected()));
             } else if (selComponent.equals(referenceOnlyList)) {
@@ -522,7 +530,7 @@ SimpleMatchListListener {
 
         @Override
         public void updateEnabledState() {
-            Component selComponent = tabbedPane.getSelectedComponent();
+            Component selComponent = getSelectedTabComponent();
             if (selComponent.equals(matchTable)) {
                 if (matches != null && matches.getSelected() != null &&
                         !matches.getSelected().isEmpty())
@@ -571,9 +579,9 @@ SimpleMatchListListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (tabbedPane.getSelectedComponent().equals(matchTable))
+            if (getSelectedTabComponent().equals(matchTable))
                 conflateMatchActionPerformed();
-            else if (tabbedPane.getSelectedComponent().equals(referenceOnlyList))
+            else if (getSelectedTabComponent().equals(referenceOnlyList))
                 conflateUnmatchedObjectActionPerformed();
         }
 
@@ -623,11 +631,11 @@ SimpleMatchListListener {
 
         @Override
         public void updateEnabledState() {
-            if (tabbedPane.getSelectedComponent().equals(matchTable) &&
+            if (getSelectedTabComponent().equals(matchTable) &&
                     matches != null && matches.getSelected() != null &&
                     !matches.getSelected().isEmpty())
                 setEnabled(true);
-            else if (tabbedPane.getSelectedComponent().equals(referenceOnlyList) &&
+            else if (getSelectedTabComponent().equals(referenceOnlyList) &&
                     !referenceOnlyList.getSelectedValuesList().isEmpty())
                 setEnabled(true);
             else
@@ -724,7 +732,7 @@ SimpleMatchListListener {
         @Override
         public void launch(MouseEvent evt) {
             //if none selected, select row under cursor
-            Component c = tabbedPane.getSelectedComponent();
+            Component c = getSelectedTabComponent();
             if (getAllSelectedPrimitives().isEmpty()) {
                 if (c == matchTable) {
                     //FIXME: this doesn't seem to be working
