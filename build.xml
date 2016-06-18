@@ -93,4 +93,6 @@
         <echo>Installing the plugin in ${local.install.path}</echo>
         <copy file="${plugin.jar}" todir="${local.install.path}" />
     </target>
+
+    <target name="test"/>
 </project>
