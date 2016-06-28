@@ -58,12 +58,10 @@ import org.openstreetmap.josm.data.osm.event.PrimitivesRemovedEvent;
 import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
 import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
 import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
-import org.openstreetmap.josm.gui.MapView.EditLayerChangeListener;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
 import org.openstreetmap.josm.gui.SideButton;
 import org.openstreetmap.josm.gui.dialogs.ToggleDialog;
 import org.openstreetmap.josm.gui.layer.Layer;
-import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.progress.PleaseWaitProgressMonitor;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
 import org.openstreetmap.josm.plugins.jts.JTSConverter;
@@ -83,8 +81,7 @@ import com.vividsolutions.jump.feature.FeatureSchema;
 import com.vividsolutions.jump.task.TaskMonitor;
 
 public class ConflationToggleDialog extends ToggleDialog
-implements EditLayerChangeListener, SelectionChangedListener, DataSetListener,
-SimpleMatchListListener {
+implements SelectionChangedListener, DataSetListener, SimpleMatchListListener {
 
     public final static String TITLE_PREFIX = tr("Conflation");
     public final static String PREF_PREFIX = "conflation";
@@ -326,11 +323,6 @@ SimpleMatchListListener {
         public void actionPerformed(ActionEvent e) {
             settingsDialog.setVisible(true);
         }
-    }
-
-    @Override
-    public void editLayerChanged(OsmDataLayer oldLayer, OsmDataLayer newLayer) {
-        // TODO
     }
 
     @Override
@@ -957,7 +949,7 @@ SimpleMatchListListener {
         try {
             if (conflationLayer == null) {
                 conflationLayer = new ConflationLayer(matches);
-                Main.main.addLayer(conflationLayer);
+                Main.getLayerManager().addLayer(conflationLayer);
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
@@ -981,6 +973,5 @@ SimpleMatchListListener {
         public void contentsChanged(ListDataEvent lde) {
             updateTabTitles();
         }
-
     }
 }

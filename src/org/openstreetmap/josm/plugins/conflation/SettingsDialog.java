@@ -227,7 +227,7 @@ public class SettingsDialog extends ExtendedDialog {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (subjectLayer != null && subjectDataSet != null && subjectSelection != null && !subjectSelection.isEmpty()) {
-                Main.map.mapView.setActiveLayer(subjectLayer);
+                Main.getLayerManager().setActiveLayer(subjectLayer);
                 subjectLayer.setVisible(true);
                 subjectDataSet.setSelected(subjectSelection);
             }
@@ -243,7 +243,7 @@ public class SettingsDialog extends ExtendedDialog {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (referenceLayer != null && referenceDataSet != null && referenceSelection != null && !referenceSelection.isEmpty()) {
-                Main.map.mapView.setActiveLayer(referenceLayer);
+                Main.getLayerManager().setActiveLayer(referenceLayer);
                 referenceLayer.setVisible(true);
                 referenceDataSet.setSelected(referenceSelection);
             }
@@ -258,14 +258,14 @@ public class SettingsDialog extends ExtendedDialog {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (subjectDataSet != null && subjectDataSet == Main.main.getCurrentDataSet()) {
+            if (subjectDataSet != null && subjectDataSet == Main.getLayerManager().getEditDataSet()) {
                 //                subjectDataSet.removeDataSetListener(this); FIXME:
                 //                subjectDataSet.removeDataSetListener(this); FIXME:
             }
-            subjectDataSet = Main.main.getCurrentDataSet();
+            subjectDataSet = Main.getLayerManager().getEditDataSet();
             //            subjectDataSet.addDataSetListener(tableModel); FIXME:
             //            subjectDataSet.addDataSetListener(tableModel); FIXME:
-            subjectLayer = Main.main.getEditLayer();
+            subjectLayer = Main.getLayerManager().getEditLayer();
             if (subjectDataSet == null || subjectLayer == null) {
                 JOptionPane.showMessageDialog(Main.parent, tr("No valid OSM data layer present."), tr("Error freezing selection"), JOptionPane.ERROR_MESSAGE);
                 return;
@@ -288,14 +288,14 @@ public class SettingsDialog extends ExtendedDialog {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (referenceDataSet != null && referenceDataSet == Main.main.getCurrentDataSet()) {
+            if (referenceDataSet != null && referenceDataSet == Main.getLayerManager().getEditDataSet()) {
                 //                referenceDataSet.removeDataSetListener(this); FIXME:
                 //                referenceDataSet.removeDataSetListener(this); FIXME:
             }
-            referenceDataSet = Main.main.getCurrentDataSet();
+            referenceDataSet = Main.getLayerManager().getEditDataSet();
             //            referenceDataSet.addDataSetListener(this); FIXME:
             //            referenceDataSet.addDataSetListener(this); FIXME:
-            referenceLayer = Main.main.getEditLayer();
+            referenceLayer = Main.getLayerManager().getEditLayer();
             if (referenceDataSet == null || referenceLayer == null) {
                 JOptionPane.showMessageDialog(Main.parent, tr("No valid OSM data layer present."), tr("Error freezing selection"), JOptionPane.ERROR_MESSAGE);
                 return;

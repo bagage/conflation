@@ -19,7 +19,6 @@ import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.visitor.BoundingXYVisitor;
 import org.openstreetmap.josm.gui.MapView;
-import org.openstreetmap.josm.gui.MapView.LayerChangeListener;
 import org.openstreetmap.josm.gui.dialogs.LayerListDialog;
 import org.openstreetmap.josm.gui.dialogs.LayerListPopup;
 import org.openstreetmap.josm.gui.layer.Layer;
@@ -30,12 +29,11 @@ import org.openstreetmap.josm.tools.ImageProvider;
  * TODO: warn on closing layer?
  * @author joshdoe
  */
-public class ConflationLayer extends Layer implements LayerChangeListener {
+public class ConflationLayer extends Layer {
     protected SimpleMatchList matches;
     
     public ConflationLayer(SimpleMatchList matches) {
         super(tr("Conflation"));
-        MapView.addLayerChangeListener(this);
         this.matches = matches;
     }
     
@@ -143,21 +141,6 @@ public class ConflationLayer extends Layer implements LayerChangeListener {
                     new RenameLayerAction(this.getAssociatedFile(), this),
                     SeparatorLayerAction.INSTANCE,
                     new LayerListPopup.InfoAction(this)};
-    }
-
-    @Override
-    public void activeLayerChange(Layer layer, Layer layer1) {
-        //TODO: possibly change arrow styling depending on active layer?
-    }
-
-    @Override
-    public void layerAdded(Layer layer) {
-        // shouldn't have to do anything here
-    }
-
-    @Override
-    public void layerRemoved(Layer layer) {
-        //TODO: if ref or non-ref layer removed, remove arrows
     }
     
     public void setMatches(SimpleMatchList matches) {
