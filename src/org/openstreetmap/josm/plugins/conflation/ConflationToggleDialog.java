@@ -7,6 +7,7 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 
 import java.awt.Component;
 import java.awt.Dialog;
+import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -113,20 +114,22 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         matches = new SimpleMatchList();
 
-        settingsDialog = new SettingsDialog();
-        settingsDialog.setModalityType(Dialog.ModalityType.MODELESS);
-        settingsDialog.addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosed(WindowEvent e) {
-                // "Generate matches" was clicked
-                if (settingsDialog.getValue() == 1) {
-                    clear(true, true, false);
-                    settings = settingsDialog.getSettings();
-                    performMatching();
+        if (!GraphicsEnvironment.isHeadless()) {
+            settingsDialog = new SettingsDialog();
+            settingsDialog.setModalityType(Dialog.ModalityType.MODELESS);
+            settingsDialog.addWindowListener(new WindowAdapter() {
+    
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    // "Generate matches" was clicked
+                    if (settingsDialog.getValue() == 1) {
+                        clear(true, true, false);
+                        settings = settingsDialog.getSettings();
+                        performMatching();
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // create table to show matches and allow multiple selections
         matchTableModel = new SimpleMatchesTableModel();
