@@ -1,4 +1,5 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
@@ -26,7 +27,9 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.ExtendedDialog;
+import org.openstreetmap.josm.gui.layer.Layer;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
+import org.openstreetmap.josm.gui.layer.LayerManager.LayerRemoveEvent;
 import org.openstreetmap.josm.tools.ImageProvider;
 
 /**
@@ -92,7 +95,7 @@ public class SettingsDialog extends ExtendedDialog {
 
         referencePanel.setBorder(new CompoundBorder(
                 BorderFactory.createTitledBorder(tr("Reference")),
-                BorderFactory.createEmptyBorder(5,5,5,5)));
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         referencePanel.setAlignmentX(LEFT_ALIGNMENT);
         referencePanel.setLayout(new BoxLayout(referencePanel,
                 BoxLayout.PAGE_AXIS));
@@ -129,7 +132,7 @@ public class SettingsDialog extends ExtendedDialog {
 
         subjectPanel.setBorder(new CompoundBorder(
                 BorderFactory.createTitledBorder(tr("Subject")),
-                BorderFactory.createEmptyBorder(5,5,5,5)));
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         subjectPanel.setAlignmentX(LEFT_ALIGNMENT);
         subjectPanel.setLayout(new BoxLayout(subjectPanel, BoxLayout.PAGE_AXIS));
 
@@ -172,16 +175,15 @@ public class SettingsDialog extends ExtendedDialog {
 
     /**
      * Matches are actually generated in windowClosed event in ConflationToggleDialog
-     *
-     * @param buttonIndex
-     * @param evt
      */
     @Override
     protected void buttonAction(int buttonIndex, ActionEvent evt) {
         // "Generate matches" as clicked
         if (buttonIndex == 0) {
             if (referenceSelection.isEmpty() || subjectSelection.isEmpty()) {
-                JOptionPane.showMessageDialog(Main.parent, tr("Selections must be made for both reference and subject."), tr("Incomplete selections"), JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.parent,
+                        tr("Selections must be made for both reference and subject."), tr("Incomplete selections"),
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
         }
@@ -220,7 +222,7 @@ public class SettingsDialog extends ExtendedDialog {
 
     class RestoreSubjectAction extends JosmAction {
 
-        public RestoreSubjectAction() {
+        RestoreSubjectAction() {
             super(tr("Restore"), null, tr("Restore subject selection"), null, false);
         }
 
@@ -236,7 +238,7 @@ public class SettingsDialog extends ExtendedDialog {
 
     class RestoreReferenceAction extends JosmAction {
 
-        public RestoreReferenceAction() {
+        RestoreReferenceAction() {
             super(tr("Restore"), null, tr("Restore reference selection"), null, false);
         }
 
@@ -252,28 +254,26 @@ public class SettingsDialog extends ExtendedDialog {
 
     class FreezeSubjectAction extends JosmAction {
 
-        public FreezeSubjectAction() {
+        FreezeSubjectAction() {
             super(tr("Freeze"), null, tr("Freeze subject selection"), null, false);
         }
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (subjectDataSet != null && subjectDataSet == Main.getLayerManager().getEditDataSet()) {
-                //                subjectDataSet.removeDataSetListener(this); FIXME:
-                //                subjectDataSet.removeDataSetListener(this); FIXME:
-            }
             subjectDataSet = Main.getLayerManager().getEditDataSet();
-            //            subjectDataSet.addDataSetListener(tableModel); FIXME:
-            //            subjectDataSet.addDataSetListener(tableModel); FIXME:
             subjectLayer = Main.getLayerManager().getEditLayer();
             if (subjectDataSet == null || subjectLayer == null) {
-                JOptionPane.showMessageDialog(Main.parent, tr("No valid OSM data layer present."), tr("Error freezing selection"), JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.parent,
+                    tr("No valid OSM data layer present."), tr("Error freezing selection"),
+                    JOptionPane.ERROR_MESSAGE);
                 return;
             }
             subjectSelection.clear();
             subjectSelection.addAll(subjectDataSet.getSelected());
             if (subjectSelection.isEmpty()) {
-                JOptionPane.showMessageDialog(Main.parent, tr("Nothing is selected, please try again."), tr("Empty selection"), JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.parent,
+                        tr("Nothing is selected, please try again."), tr("Empty selection"),
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
             update();
@@ -282,28 +282,26 @@ public class SettingsDialog extends ExtendedDialog {
 
     class FreezeReferenceAction extends JosmAction {
 
-        public FreezeReferenceAction() {
+        FreezeReferenceAction() {
             super(tr("Freeze"), null, tr("Freeze reference selection"), null, false);
         }
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (referenceDataSet != null && referenceDataSet == Main.getLayerManager().getEditDataSet()) {
-                //                referenceDataSet.removeDataSetListener(this); FIXME:
-                //                referenceDataSet.removeDataSetListener(this); FIXME:
-            }
             referenceDataSet = Main.getLayerManager().getEditDataSet();
-            //            referenceDataSet.addDataSetListener(this); FIXME:
-            //            referenceDataSet.addDataSetListener(this); FIXME:
             referenceLayer = Main.getLayerManager().getEditLayer();
             if (referenceDataSet == null || referenceLayer == null) {
-                JOptionPane.showMessageDialog(Main.parent, tr("No valid OSM data layer present."), tr("Error freezing selection"), JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.parent,
+                        tr("No valid OSM data layer present."), tr("Error freezing selection"),
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
             referenceSelection.clear();
             referenceSelection.addAll(referenceDataSet.getSelected());
             if (referenceSelection.isEmpty()) {
-                JOptionPane.showMessageDialog(Main.parent, tr("Nothing is selected, please try again."), tr("Empty selection"), JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.parent,
+                        tr("Nothing is selected, please try again."), tr("Empty selection"),
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
             update();
@@ -331,6 +329,10 @@ public class SettingsDialog extends ExtendedDialog {
             subjectLayerLabel.setText(subjectLayer.getName());
             subjectSelectionLabel.setText(tr("{0}: {1} / {2}: {3} / {4}: {5}",
                     "Relations", numRelations, "Ways", numWays, "Nodes", numNodes));
+        } else {
+            subjectLayerLabel.setText("(none)");
+            subjectSelectionLabel.setText(tr("{0}: 0 / {1}: 0 / {2}: 0",
+                    "Relations", "Ways", "Nodes"));
         }
         numNodes = 0;
         numWays = 0;
@@ -348,8 +350,44 @@ public class SettingsDialog extends ExtendedDialog {
             referenceLayerLabel.setText(referenceLayer.getName());
             referenceSelectionLabel.setText(tr("{0}: {1} / {2}: {3} / {4}: {5}",
                     "Relations", numRelations, "Ways", numWays, "Nodes", numNodes));
+        } else {
+            referenceLayerLabel.setText("(none)");
+            referenceSelectionLabel.setText(tr("{0}: 0 / {1}: 0 / {2}: 0",
+                    "Relations", "Ways", "Nodes"));
         }
 
         //FIXME: properly update match finder settings
     }
+
+    /**
+     * To be called when a layer is removed.
+     * Clear any reference to the removed layer.
+     * @param e the layer remove event.
+     */
+    public void layerRemoving(LayerRemoveEvent e) {
+        Layer removedLayer = e.getRemovedLayer();
+        this.clear(removedLayer == referenceLayer, removedLayer == subjectLayer);
+    }
+
+    /**
+     * Clear some settings.
+     * @param shouldClearReference if "Reference" settings should be cleared.
+     * @param shouldClearSubject if "Subject" settings should be cleared.
+     */
+    public void clear(boolean shouldClearReference, boolean shouldClearSubject) {
+        if (shouldClearReference || shouldClearSubject) {
+            if (shouldClearReference) {
+                referenceLayer = null;
+                referenceDataSet = null;
+                referenceSelection.clear();
+            }
+            if (shouldClearSubject) {
+                subjectLayer = null;
+                subjectDataSet = null;
+                subjectSelection.clear();
+            }
+            update();
+        }
+    }
+
 }

@@ -1,7 +1,13 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
@@ -148,14 +154,22 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     public void addConflationListChangedListener(SimpleMatchListListener listener) {
         listeners.addIfAbsent(listener);
     }
+    
+    public void removeConflationListChangedListener(SimpleMatchListListener listener) {
+        listeners.remove(listener);
+    }
+    
+    public void removeAllConflationListChangedListener() {
+        listeners.clear();
+    }
 
-    public void fireListChanged(){
+    public void fireListChanged() {
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListChanged(this);
         }
     }
     
-    public void fireSelectionChanged(){
+    public void fireSelectionChanged() {
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchSelectionChanged(selected);
         }
@@ -167,7 +181,6 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     
     /**
      * Set which {@see SimpleMatch} is currently selected. Set to null to clear selection.
-     * @param match 
      */
     public void setSelected(SimpleMatch match) {
         if (match != null)

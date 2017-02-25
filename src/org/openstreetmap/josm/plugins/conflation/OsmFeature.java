@@ -1,4 +1,5 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
 import com.vividsolutions.jump.feature.AbstractBasicFeature;
@@ -16,7 +17,6 @@ public class OsmFeature extends AbstractBasicFeature {
     /**
      * Create a copy of the OSM geometry
      * TODO: update from underlying primitive
-     * @param prim 
      */
     public OsmFeature(OsmPrimitive prim, JTSConverter jtsConverter) {
         super(new FeatureSchema());
