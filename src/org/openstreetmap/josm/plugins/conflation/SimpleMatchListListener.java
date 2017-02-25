@@ -1,4 +1,5 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
 import java.util.Collection;
@@ -10,12 +11,12 @@ public interface SimpleMatchListListener {
      *
      * @param list The new list.
      */
-    public void simpleMatchListChanged(SimpleMatchList list);
+    void simpleMatchListChanged(SimpleMatchList list);
     
     /**
      * Informs the listener that the conflation list selection has changed.
      * 
      * @param selected The newly selected conflation match.
      */
-    public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected);
+    void simpleMatchSelectionChanged(Collection<SimpleMatch> selected);
 }

@@ -1,4 +1,5 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
 import java.util.Collection;
@@ -16,7 +17,7 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
 
     private SimpleMatchList matches = null;
     // TODO: make columns dynamic
-    private final static String[] columnNames = {tr("Reference"), tr("Subject"), "Distance (m)", "Score", "Tags"};
+    private static final String[] columnNames = {tr("Reference"), tr("Subject"), "Distance (m)", "Score", "Tags"};
 
     @Override
     public int getColumnCount() {
@@ -70,7 +71,12 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
 
     @Override
     public Class<?> getColumnClass(int c) {
-        return getValueAt(0, c).getClass();
+        Object value = getValueAt(0, c);
+        if (value != null) {
+            return value.getClass();
+        } else {
+            return Object.class;
+        }
     }
 
     /**
@@ -84,8 +90,16 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
      * @param matches the matches to set
      */
     public void setMatches(SimpleMatchList matches) {
-        this.matches = matches;
-        fireTableDataChanged();
+        if (matches != this.matches) {
+            if (this.matches != null) {
+                this.matches.removeConflationListChangedListener(this);
+            }
+            this.matches = matches;
+            if (matches != null) {
+                matches.addConflationListChangedListener(this);
+            }
+            fireTableDataChanged();
+        }
     }
 
     @Override

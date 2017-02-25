@@ -1,7 +1,8 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import javax.swing.Icon;
@@ -69,11 +70,8 @@ public class ConflateUnmatchedObjectCommand extends Command {
         return unmatchedObjects;
     }
 
-
     @Override
     public Collection<PseudoCommand> getChildren() {
-        Collection<PseudoCommand> children = new ArrayList<>();
-        children.add(addPrimitivesCommand);
-        return children;
+        return Arrays.asList(addPrimitivesCommand);
     }
 }

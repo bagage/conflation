@@ -1,10 +1,12 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.coor.EastNorth;
 import org.openstreetmap.josm.data.coor.LatLon;
@@ -14,6 +16,8 @@ import org.openstreetmap.josm.data.osm.PrimitiveData;
 import org.openstreetmap.josm.data.osm.visitor.MergeSourceBuildingVisitor;
 
 public final class ConflationUtils {
+
+    private ConflationUtils() {}
 
     public static EastNorth getCenter(OsmPrimitive prim) {
         LatLon center = prim.getBBox().getTopLeft().getCenter(prim.getBBox().getBottomRight());
@@ -34,10 +38,8 @@ public final class ConflationUtils {
         //restore selection
         sourceDataSet.setSelected(origSelection);
 
-        List<PrimitiveData> newObjects = new ArrayList<>();
-        for (OsmPrimitive p : newDataSet.allPrimitives()) {
-            newObjects.add(p.save());
-        }
-        return newObjects;
+        return newDataSet.allPrimitives().stream()
+                .map(p -> p.save())
+                .collect(Collectors.toList());
     }
 }

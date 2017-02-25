@@ -1,4 +1,5 @@
-// License: GPL. See LICENSE file for details. Copyright 2012 by Josh Doe and others.
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
@@ -31,12 +32,12 @@ import org.openstreetmap.josm.tools.ImageProvider;
  */
 public class ConflationLayer extends Layer {
     protected SimpleMatchList matches;
-    
+
     public ConflationLayer(SimpleMatchList matches) {
         super(tr("Conflation"));
         this.matches = matches;
     }
-    
+
     public ConflationLayer() {
         this(null);
     }
@@ -88,11 +89,8 @@ public class ConflationLayer extends Layer {
                 g2.draw(path);
             }
         }
-
-        
     }
 
-    
     @Override
     public Icon getIcon() {
         // TODO: change icon
@@ -121,9 +119,9 @@ public class ConflationLayer extends Layer {
             OsmPrimitive reference = match.getReferenceObject();
             OsmPrimitive subject = match.getSubjectObject();
             if (reference != null && reference instanceof Node)
-                v.visit((Node)reference);
+                v.visit((Node) reference);
             if (subject != null && subject instanceof Node)
-                v.visit((Node)subject);
+                v.visit((Node) subject);
         }
     }
 
@@ -142,7 +140,7 @@ public class ConflationLayer extends Layer {
                     SeparatorLayerAction.INSTANCE,
                     new LayerListPopup.InfoAction(this)};
     }
-    
+
     public void setMatches(SimpleMatchList matches) {
         this.matches = matches;
         // TODO: does repaint automatically occur?

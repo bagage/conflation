@@ -1,3 +1,4 @@
+// License: GPL. For details, see LICENSE file.
 package org.openstreetmap.josm.plugins.conflation;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
@@ -26,7 +27,6 @@ import com.vividsolutions.jcs.conflate.polygonmatch.HausdorffDistanceMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.IdenticalFeatureFilter;
 import com.vividsolutions.jcs.conflate.polygonmatch.OneToOneFCMatchFinder;
 
-
 public class MatchFinderPanel extends JPanel {
     private final JComboBox<String> matchFinderComboBox;
     private final CentroidDistanceComponent centroidDistanceComponent;
@@ -35,7 +35,7 @@ public class MatchFinderPanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(new CompoundBorder(
                 BorderFactory.createTitledBorder(tr("Match finder settings")),
-                BorderFactory.createEmptyBorder(5,5,5,5)));
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
         String[] matchFinderStrings = {"DisambiguatingFCMatchFinder", "OneToOneFCMatchFinder" };
         matchFinderComboBox = new JComboBox<>(matchFinderStrings);
@@ -72,10 +72,10 @@ public class MatchFinderPanel extends JPanel {
     abstract class DistanceComponent extends AbstractScoreComponent {
         SpinnerNumberModel threshDistanceSpinnerModel;
 
-        public DistanceComponent(String title) {
+        DistanceComponent(String title) {
             setBorder(new CompoundBorder(
                     BorderFactory.createTitledBorder(tr(title)),
-                    BorderFactory.createEmptyBorder(5,5,5,5)));
+                    BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
             JPanel panel = new JPanel();
             panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
@@ -99,7 +99,7 @@ public class MatchFinderPanel extends JPanel {
     }
 
     class CentroidDistanceComponent extends DistanceComponent {
-        public CentroidDistanceComponent() {
+        CentroidDistanceComponent() {
             super(tr("Centroid distance"));
         }
 
@@ -112,7 +112,7 @@ public class MatchFinderPanel extends JPanel {
     }
 
     class HausdorffDistanceComponent extends DistanceComponent {
-        public HausdorffDistanceComponent() {
+        HausdorffDistanceComponent() {
             super(tr("Hausdorff distance"));
         }
 
