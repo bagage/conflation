@@ -102,12 +102,27 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
         }
     }
 
+    /* ---------------------------------------------------------------------------------- */
+    /* SimpleMatchListListener                                                            */
+    /* ---------------------------------------------------------------------------------- */
+
     @Override
     public void simpleMatchListChanged(SimpleMatchList list) {
         fireTableDataChanged();
     }
 
     @Override
+    public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
+        fireTableRowsInserted(index0, index1);
+    }
+
+    @Override
+    public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
+        fireTableRowsDeleted(index0, index1);
+    }
+
+    @Override
     public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
     }
+
 }

@@ -3,24 +3,23 @@
 package org.openstreetmap.josm.plugins.conflation;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
-import static org.openstreetmap.josm.tools.I18n.tr;
+import org.openstreetmap.josm.tools.CheckParameterUtil;
 
 /**
  * This class represents a potential match, i.e. a pair of primitives, a score
  * and related information.
  */
-public class SimpleMatch {
+public class SimpleMatch implements Comparable<SimpleMatch> {
 
-    OsmPrimitive referenceObject;
-    OsmPrimitive subjectObject;
-    double score;
-    double distance;
+    final OsmPrimitive referenceObject;
+    final OsmPrimitive subjectObject;
+    final double score;
+    final double distance;
 
     public SimpleMatch(OsmPrimitive referenceObject,
             OsmPrimitive subjectObject, double score) {
-        if (referenceObject == null || subjectObject == null) {
-            throw new IllegalArgumentException(tr("Invalid reference or subject"));
-        }
+        CheckParameterUtil.ensureParameterNotNull(referenceObject, "referenceObject");
+        CheckParameterUtil.ensureParameterNotNull(subjectObject, "subjectObject");
         this.referenceObject = referenceObject;
         this.subjectObject = subjectObject;
         this.score = score;
@@ -42,5 +41,25 @@ public class SimpleMatch {
 
     public Object getDistance() {
         return distance;
+    }
+
+    @Override
+    public int compareTo(SimpleMatch o) {
+        int comp = Double.compare(this.score, o.score);
+        if (comp == 0) {
+            comp = -Double.compare(this.distance, o.distance); // (-) greater distance is no good
+            if (comp == 0) {
+                comp = referenceObject.compareTo(o.referenceObject);
+                if (comp == 0) {
+                    comp = subjectObject.compareTo(o.subjectObject);
+                }
+            }
+        }
+        return comp;
+    }
+
+    @Override
+    public int hashCode() {
+        return referenceObject.hashCode() ^ subjectObject.hashCode(); 
     }
 }
