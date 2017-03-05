@@ -16,15 +16,13 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.swing.DefaultListCellRenderer;
@@ -64,6 +62,7 @@ import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
 import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
 import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
+import org.openstreetmap.josm.gui.PleaseWaitRunnable;
 import org.openstreetmap.josm.gui.SideButton;
 import org.openstreetmap.josm.gui.dialogs.ToggleDialog;
 import org.openstreetmap.josm.gui.layer.Layer;
@@ -71,23 +70,14 @@ import org.openstreetmap.josm.gui.layer.LayerManager.LayerAddEvent;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerChangeListener;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerOrderChangeEvent;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerRemoveEvent;
-import org.openstreetmap.josm.gui.progress.PleaseWaitProgressMonitor;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
-import org.openstreetmap.josm.plugins.jts.JTSConverter;
+import org.openstreetmap.josm.io.OsmTransferException;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryException;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
 import org.openstreetmap.josm.tools.UserCancelException;
-
-import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
-import com.vividsolutions.jcs.conflate.polygonmatch.Matches;
-import com.vividsolutions.jump.feature.AttributeType;
-import com.vividsolutions.jump.feature.Feature;
-import com.vividsolutions.jump.feature.FeatureCollection;
-import com.vividsolutions.jump.feature.FeatureDataset;
-import com.vividsolutions.jump.feature.FeatureSchema;
-import com.vividsolutions.jump.task.TaskMonitor;
+import org.xml.sax.SAXException;
 
 public class ConflationToggleDialog extends ToggleDialog
 implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, LayerChangeListener {
@@ -412,26 +402,48 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                 settings.setSubjectSelection(null);
             }
         }
-        referenceOnlyListModel.clear();
-        subjectOnlyListModel.clear();
-        setMatches(new SimpleMatchList());
+        clearListsContentAndListeners();
+    }
+
+    private void clearListsContentAndListeners() {
         primitivesRemovedReferenceOnly.clear();
         primitivesRemovedSubjectOnly.clear();
         primitivesRemovedMatchByReference.clear();
         primitivesRemovedMatchBySubject.clear();
+        matches.removeAllConflationListChangedListener();
+        matches.clear();
+        referenceOnlyListModel.clear();
+        subjectOnlyListModel.clear();
+        updateTabTitles();
     }
 
-    private void setMatches(SimpleMatchList matchList) {
-        matches.clear();
-        matches.removeAllConflationListChangedListener();
+    private void setListsContentAddListnersAndLayer(SimpleMatchList matchList,
+            Collection<OsmPrimitive> referenceOnlyList, Collection<OsmPrimitive> subjectOnlyList) {
+        clearListsContentAndListeners();
         matches = matchList;
         matchTableModel.setMatches(matches);
         matches.addConflationListChangedListener(conflateAction);
         matches.addConflationListChangedListener(removeAction);
         matches.addConflationListChangedListener(this);
+        // add conflation layer
+        try {
+            if (conflationLayer == null) {
+                conflationLayer = new ConflationLayer(matches);
+            }
+            if (!Main.getLayerManager().containsLayer(conflationLayer)) {
+                Main.getLayerManager().addLayer(conflationLayer);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
+        }
         if (conflationLayer != null) {
             conflationLayer.setMatches(matches);
         }
+        referenceOnlyListModel.addAll(referenceOnlyList);
+        subjectOnlyListModel.addAll(subjectOnlyList);
+        updateTabTitles();
+        settings.getSubjectDataSet().addDataSetListener(ConflationToggleDialog.this);
+        settings.getReferenceDataSet().addDataSetListener(ConflationToggleDialog.this);
     }
 
     /* ---------------------------------------------------------------------------------- */
@@ -460,7 +472,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
         if (c != null) {
             int index = matches.indexOf(c);
-            if (index > 0) {
+            if (index >= 0) {
                 index = matchTable.convertRowIndexToView(index);
                 matchTable.getSelectionModel().addSelectionInterval(index, index);
                 if (ensureVisible) {
@@ -1134,144 +1146,37 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     }
 
     /**
-     * Create FeatureSchema using union of all keys from all selected primitives
+     * Launch the matching computation in a PleaseWaitRunnable window.
      */
-    private FeatureSchema createSchema(Collection<OsmPrimitive> prims) {
-        Set<String> keys = new HashSet<>();
-        for (OsmPrimitive prim : prims) {
-            keys.addAll(prim.getKeys().keySet());
-        }
-        FeatureSchema schema = new FeatureSchema();
-        schema.addAttribute("__GEOMETRY__", AttributeType.GEOMETRY);
-        for (String key : keys) {
-            schema.addAttribute(key, AttributeType.STRING);
-        }
-        return schema;
-    }
-
-    private FeatureCollection createFeatureCollection(Collection<OsmPrimitive> prims) {
-        FeatureDataset dataset = new FeatureDataset(createSchema(prims));
-        //TODO: use factory instead of passing converter
-        JTSConverter converter = new JTSConverter(true);
-        for (OsmPrimitive prim : prims) {
-            dataset.add(new OsmFeature(prim, converter));
-        }
-        return dataset;
-    }
-
-    /**
-     * Progress monitor for use with JCS
-     */
-    private class JosmTaskMonitor extends PleaseWaitProgressMonitor implements TaskMonitor {
-
-        @Override
-        public void report(String description) {
-            subTask(description);
-        }
-
-        @Override
-        public void report(int itemsDone, int totalItems, String itemDescription) {
-            subTask(String.format("Processing %d of %d %s", itemsDone, totalItems, itemDescription));
-        }
-
-        @Override
-        public void report(Exception exception) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        @Override
-        public void allowCancellationRequests() {
-            setCancelable(true);
-        }
-
-        @Override
-        public boolean isCancelRequested() {
-            return isCanceled();
-        }
-
-    }
-
-    private SimpleMatchList generateMatches(SimpleMatchSettings settings) {
-        JosmTaskMonitor monitor = new JosmTaskMonitor();
-        monitor.beginTask("Generating matches");
-
-        // create Features and collections from primitive selections
-        Set<OsmPrimitive> allPrimitives = new HashSet<>();
-        allPrimitives.addAll(settings.getReferenceSelection());
-        allPrimitives.addAll(settings.getSubjectSelection());
-        FeatureCollection allFeatures = createFeatureCollection(allPrimitives);
-        FeatureCollection refColl = new FeatureDataset(allFeatures.getFeatureSchema());
-        FeatureCollection subColl = new FeatureDataset(allFeatures.getFeatureSchema());
-        for (Feature f : allFeatures.getFeatures()) {
-            OsmFeature osmFeature = (OsmFeature) f;
-            if (settings.getReferenceSelection().contains(osmFeature.getPrimitive()))
-                refColl.add(osmFeature);
-            if (settings.getSubjectSelection().contains(osmFeature.getPrimitive()))
-                subColl.add(osmFeature);
-        }
-
-        //TODO: pass to MatchFinderPanel to use as hint/default for DistanceMatchers
-        // get maximum possible distance so scores can be scaled (FIXME: not quite accurate)
-        // Envelope envelope = refColl.getEnvelope();
-        // envelope.expandToInclude(subColl.getEnvelope());
-        // double maxDistance = Point2D.distance(
-        //     envelope.getMinX(),
-        //     envelope.getMinY(),
-        //     envelope.getMaxX(),
-        //     envelope.getMaxY());
-
-        // build matcher
-        FCMatchFinder finder = settings.getMatchFinder();
-
-        // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
-        // FIXME: fix match functions to work on point/linestring features as well
-        // find matches
-        Map<Feature, Matches> map = finder.match(refColl, subColl, monitor);
-
-        monitor.subTask("Finishing match list");
-
-        // convert to simple one-to-one match
-        SimpleMatchList list = new SimpleMatchList();
-        for (Map.Entry<Feature, Matches> entry: map.entrySet()) {
-            OsmFeature target = (OsmFeature) entry.getKey();
-            OsmFeature subject = (OsmFeature) entry.getValue().getTopMatch();
-            if (target != null && subject != null)
-                list.add(new SimpleMatch(target.getPrimitive(), subject.getPrimitive(),
-                        entry.getValue().getTopScore()));
-        }
-
-        monitor.finishTask();
-        monitor.close();
-        return list;
-    }
-
     private void performMatching() {
-        setMatches(generateMatches(settings));
+        Main.worker.submit(new PleaseWaitRunnable(tr("Generating matches")) {
 
-        // populate unmatched objects
-        referenceOnlyListModel.clear();
-        referenceOnlyListModel.addAll(settings.getReferenceSelection().stream().filter(
-                r -> !matches.hasMatchForReference(r)).collect(Collectors.toList()));
-        subjectOnlyListModel.clear();
-        subjectOnlyListModel.addAll(settings.getSubjectSelection().stream().filter(
-                s -> !matches.hasMatchForSubject(s)).collect(Collectors.toList()));
+            private SimpleMatchList computedMatches;
+            private Collection<OsmPrimitive> referenceOnlyList;
+            private Collection<OsmPrimitive> subjectOnlyList;
 
-        updateTabTitles();
-
-        settings.getSubjectDataSet().addDataSetListener(this);
-        settings.getReferenceDataSet().addDataSetListener(this);
-        // add conflation layer
-        try {
-            if (conflationLayer == null) {
-                conflationLayer = new ConflationLayer(matches);
+            @Override
+            protected void realRun() throws SAXException, IOException, OsmTransferException {
+                computedMatches = new SimpleMatchList();
+                computedMatches.addAll(MatchesComputation.generateMatches(settings, getProgressMonitor()));
+                if (!getProgressMonitor().isCanceled()) {
+                    referenceOnlyList = settings.getReferenceSelection().stream().filter(
+                            r -> !computedMatches.hasMatchForReference(r)).collect(Collectors.toList());
+                    subjectOnlyList = settings.getSubjectSelection().stream().filter(
+                            s -> !computedMatches.hasMatchForSubject(s)).collect(Collectors.toList());
+                }
             }
-            if (!Main.getLayerManager().containsLayer(conflationLayer)) {
-                Main.getLayerManager().addLayer(conflationLayer);
+
+            @Override
+            protected void finish() {
+                if (!getProgressMonitor().isCanceled()) {
+                    setListsContentAddListnersAndLayer(computedMatches, referenceOnlyList, subjectOnlyList);
+                }
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
-        }
-        // matches.addConflationListChangedListener(conflationLayer);
+
+            @Override
+            protected void cancel() {}
+        });
     }
 
     class UnmatchedListDataListener implements ListDataListener {
