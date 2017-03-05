@@ -5,9 +5,9 @@ package org.openstreetmap.josm.plugins.conflation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
@@ -15,14 +15,15 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  *  Holds a list of {@see Match}es and provides convenience functions.
  */
 public class SimpleMatchList implements Iterable<SimpleMatch> {
-    private CopyOnWriteArrayList<SimpleMatchListListener> listeners = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<SimpleMatchListListener> listeners = new CopyOnWriteArrayList<>();
 
-    List<SimpleMatch> matches;
-    Collection<SimpleMatch> selected;
+    private final ArrayList<SimpleMatch> matches = new ArrayList<>();
+    private final HashSet<SimpleMatch> selected = new HashSet<>();
+
+    private final HashMap<OsmPrimitive, SimpleMatch> byReference = new HashMap<>();
+    private final HashMap<OsmPrimitive, SimpleMatch> bySubject = new HashMap<>();
 
     public SimpleMatchList() {
-        matches = new LinkedList<>();
-        selected = new ArrayList<>();
     }
 
     public boolean hasMatch(SimpleMatch c) {
@@ -42,21 +43,11 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     }
 
     public SimpleMatch getMatchByReference(OsmPrimitive referenceObject) {
-        for (SimpleMatch c : matches) {
-            if (c.getReferenceObject() == referenceObject) {
-                return c;
-            }
-        }
-        return null;
+        return byReference.get(referenceObject);
     }
 
     public SimpleMatch getMatchBySubject(OsmPrimitive subjectObject) {
-        for (SimpleMatch c : matches) {
-            if (c.getSubjectObject() == subjectObject) {
-                return c;
-            }
-        }
-        return null;
+        return bySubject.get(subjectObject);
     }
 
     @Override
@@ -64,15 +55,37 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         return matches.iterator();
     }
 
-    public boolean add(SimpleMatch c) {
-        return addAll(Collections.singleton(c));
+    public boolean add(SimpleMatch element) {
+        int index = Collections.binarySearch(matches, element);
+        if (index < 0) {
+            index = -index - 1;
+            matches.add(index, element);
+            byReference.put(element.getReferenceObject(), element);
+            bySubject.put(element.getSubjectObject(), element);
+            fireIntervalAdded(index, index);
+            return true;
+        } else {
+            return false;
+        }
     }
-    
+
     public boolean addAll(Collection<SimpleMatch> toAdd) {
-        boolean changed = matches.addAll(toAdd);
-        if (changed)
+        if ((matches.size() == 0) && (toAdd.size() > 0)) {
+            matches.addAll(toAdd);
+            Collections.sort(matches);
+            for (SimpleMatch sm : toAdd) {
+                byReference.put(sm.getReferenceObject(), sm);
+                bySubject.put(sm.getSubjectObject(), sm);
+            }
             fireListChanged();
-        return changed;
+            return true;
+        } else {
+            boolean changed = false;
+            for (SimpleMatch sm : toAdd) {
+                changed = add(sm) || changed;
+            }
+            return changed;
+        }
     }
 
     public int size() {
@@ -82,11 +95,14 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     public SimpleMatch get(int index) {
         return matches.get(index);
     }
-    
+
     public int indexOf(SimpleMatch match) {
-        return matches.indexOf(match);
+        int index = Collections.binarySearch(matches, match);
+        if (index < -1)
+            index = -1;
+        return index;
     }
-    
+
     /**
      * Remove all matches and clear selection.
      */
@@ -94,6 +110,8 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         if (matches.size() > 0) {
             setSelected(new ArrayList<SimpleMatch>());
             matches.clear();
+            byReference.clear();
+            bySubject.clear();
             fireListChanged();
         }
     }
@@ -101,64 +119,66 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     public boolean remove(SimpleMatch c) {
         return removeAll(Collections.singleton(c));
     }
-    
+
     public SimpleMatch findNextSelection() {
-        SimpleMatch next = null;
-        // if gap in selection exists, use that as the next selection
-        for (int i = 1; i < matches.size() - 1; i++) {
-            if (selected.contains(matches.get(i - 1)) &&
-                !selected.contains(matches.get(i)) &&
-                selected.contains(matches.get(i + 1))) {
-                next = matches.get(i);
-                break;
-            }
+
+        // FIXME: The SimpleMatchesTableModel can be sorted,
+        // so the next selection computed here may
+        // not be the next one the displayed list as expected.
+
+        if (selected.size() == matches.size()) {
+            // special case (all elements selected because of Cntrl-A)
+            // that would take a lot of time to compute otherwise
+            return null;
         }
-        
-        if (next == null) {
-            int first = matches.size();
-            int last = -1;
-            for (SimpleMatch c : selected) {
-                first = Math.min(first, matches.indexOf(c));
-                last = Math.max(last, matches.indexOf(c));
-            }
-            if (last + 1 < matches.size())
-                next = matches.get(last + 1);
-            else if (first - 1 >= 0)
-                next = matches.get(first - 1);
-            else
-                next = null;
+        int min = selected.stream().map(s -> matches.indexOf(s)).min(Integer::compare).orElse(-1);
+        int index = min + 1;
+        while ((index < matches.size()) && selected.contains(matches.get(index))) index++;
+        if (index < matches.size()) {
+            return matches.get(index);
+        } else if (min > 0) {
+            return matches.get(min - 1);
+        } else {
+            return null;
         }
-        
-        return next;
+
     }
-    
+
     public boolean removeAll(Collection<SimpleMatch> matchesToRemove) {
         // find next to select if entire selection is removed
         SimpleMatch next = findNextSelection();
-        
-        boolean ret = matches.removeAll(matchesToRemove);
+
+        boolean isChanged = false;
+        for (SimpleMatch sm : matchesToRemove) {
+            int index = Collections.binarySearch(matches, sm);
+            if (index >= 0) {
+                matches.remove(index);
+                byReference.remove(sm.getReferenceObject());
+                bySubject.remove(sm.getSubjectObject());
+                fireIntervalRemoved(index, index);
+                isChanged = true;
+            }
+        }
+
         if (selected.removeAll(matchesToRemove)) {
-        
+
             if (selected.isEmpty() && next != null)
                 selected.add(next);
 
             fireSelectionChanged();
         }
-        
-        if (ret)
-            fireListChanged();
-        
-        return ret;
+
+        return isChanged;
     }
-    
+
     public void addConflationListChangedListener(SimpleMatchListListener listener) {
         listeners.addIfAbsent(listener);
     }
-    
+
     public void removeConflationListChangedListener(SimpleMatchListListener listener) {
         listeners.remove(listener);
     }
-    
+
     public void removeAllConflationListChangedListener() {
         listeners.clear();
     }
@@ -168,17 +188,29 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
             l.simpleMatchListChanged(this);
         }
     }
-    
+
     public void fireSelectionChanged() {
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchSelectionChanged(selected);
         }
     }
 
+    public void fireIntervalAdded(int index0, int index1) {
+        for (SimpleMatchListListener l : listeners) {
+            l.simpleMatchListIntervalAdded(this, index0, index1);
+        }
+    }
+
+    public void fireIntervalRemoved(int index0, int index1) {
+        for (SimpleMatchListListener l : listeners) {
+            l.simpleMatchListIntervalRemoved(this, index0, index1);
+        }
+    }
+
     public Collection<SimpleMatch> getSelected() {
         return selected;
     }
-    
+
     /**
      * Set which {@see SimpleMatch} is currently selected. Set to null to clear selection.
      */
@@ -188,11 +220,11 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         else
             setSelected(new ArrayList<SimpleMatch>());
     }
-    
+
     public void setSelected(Collection<SimpleMatch> matches) {
         if (selected.containsAll(matches) && selected.size() == matches.size())
             return;
-        
+
         selected.clear();
         selected.addAll(matches);
         fireSelectionChanged();

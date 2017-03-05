@@ -14,6 +14,20 @@ public interface SimpleMatchListListener {
     void simpleMatchListChanged(SimpleMatchList list);
     
     /**
+     * Informs the listener that the conflation list interval was added.
+     *
+     * @param list The new list.
+     */
+    void simpleMatchListIntervalAdded(SimpleMatchList list, int firstRow, int lastRow);
+
+    /**
+     * Informs the listener that the conflation list interval was removed.
+     *
+     * @param list The new list.
+     */
+    void simpleMatchListIntervalRemoved(SimpleMatchList list, int firstRow, int lastRow);
+
+    /**
      * Informs the listener that the conflation list selection has changed.
      * 
      * @param selected The newly selected conflation match.

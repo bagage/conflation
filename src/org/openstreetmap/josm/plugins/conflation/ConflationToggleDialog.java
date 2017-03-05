@@ -16,13 +16,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
@@ -61,6 +62,7 @@ import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
 import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
 import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
+import org.openstreetmap.josm.gui.PleaseWaitRunnable;
 import org.openstreetmap.josm.gui.SideButton;
 import org.openstreetmap.josm.gui.dialogs.ToggleDialog;
 import org.openstreetmap.josm.gui.layer.Layer;
@@ -68,51 +70,49 @@ import org.openstreetmap.josm.gui.layer.LayerManager.LayerAddEvent;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerChangeListener;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerOrderChangeEvent;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerRemoveEvent;
-import org.openstreetmap.josm.gui.progress.PleaseWaitProgressMonitor;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
-import org.openstreetmap.josm.plugins.jts.JTSConverter;
+import org.openstreetmap.josm.io.OsmTransferException;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryException;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
 import org.openstreetmap.josm.tools.UserCancelException;
-
-import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
-import com.vividsolutions.jcs.conflate.polygonmatch.Matches;
-import com.vividsolutions.jump.feature.AttributeType;
-import com.vividsolutions.jump.feature.Feature;
-import com.vividsolutions.jump.feature.FeatureCollection;
-import com.vividsolutions.jump.feature.FeatureDataset;
-import com.vividsolutions.jump.feature.FeatureSchema;
-import com.vividsolutions.jump.task.TaskMonitor;
+import org.xml.sax.SAXException;
 
 public class ConflationToggleDialog extends ToggleDialog
 implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, LayerChangeListener {
 
     public static final String TITLE_PREFIX = tr("Conflation");
     public static final String PREF_PREFIX = "conflation";
-    JTabbedPane tabbedPane;
-    JTable matchTable;
-    JList<OsmPrimitive> referenceOnlyList;
-    UnmatchedObjectListModel referenceOnlyListModel;
-    JList<OsmPrimitive> subjectOnlyList;
-    UnmatchedObjectListModel subjectOnlyListModel;
-    ConflationLayer conflationLayer;
-    SimpleMatchesTableModel matchTableModel;
-    SimpleMatchList matches;
-    SimpleMatchSettings settings;
-    SettingsDialog settingsDialog;
-    ConflateAction conflateAction;
-    RemoveAction removeAction;
-    ZoomToListSelectionAction zoomToListSelectionAction;
-    SelectionPopup selectionPopup;
+    final JTabbedPane tabbedPane;
+    final JTable matchTable;
+    final JList<OsmPrimitive> referenceOnlyList;
+    final UnmatchedObjectListModel referenceOnlyListModel;
+    final JList<OsmPrimitive> subjectOnlyList;
+    final UnmatchedObjectListModel subjectOnlyListModel;
+    ConflationLayer conflationLayer; // may be null
+    final SimpleMatchesTableModel matchTableModel;
+    SimpleMatchList matches = new SimpleMatchList();;
+    SimpleMatchSettings settings;  // may be null
+    final SettingsDialog settingsDialog; // null if headless
+    final ConflateAction conflateAction;
+    final SideButton conflateButton;
+    final RemoveAction removeAction;
+    final SideButton removeButton;
+    final ZoomToListSelectionAction zoomToListSelectionAction;
+    final SelectionPopup selectionPopup;
+
+    // Keep track of conflation cases automatically removed (because of corresponding primitives removal), 
+    // to be able to restore them (in case of Undo)
+    private final HashSet<OsmPrimitive> primitivesRemovedReferenceOnly = new HashSet<>();
+    private final HashSet<OsmPrimitive> primitivesRemovedSubjectOnly = new HashSet<>();
+    private final HashMap<OsmPrimitive, SimpleMatch> primitivesRemovedMatchByReference = new HashMap<>();
+    private final HashMap<OsmPrimitive, SimpleMatch> primitivesRemovedMatchBySubject = new HashMap<>();
 
     public ConflationToggleDialog(ConflationPlugin conflationPlugin) {
         // TODO: create shortcut?
         super(TITLE_PREFIX, "conflation.png", tr("Activates the conflation plugin"),
                 null, 150);
-
-        matches = new SimpleMatchList();
 
         if (!GraphicsEnvironment.isHeadless()) {
             settingsDialog = new SettingsDialog();
@@ -129,6 +129,8 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                     }
                 }
             });
+        } else {
+            settingsDialog = null;
         }
 
         // create table to show matches and allow multiple selections
@@ -186,7 +188,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         tabbedPane.addTab(tr("Subject only"), new JScrollPane(subjectOnlyList));
 
         conflateAction = new ConflateAction();
-        final SideButton conflateButton = new SideButton(conflateAction);
+        conflateButton = new SideButton(conflateAction);
         // TODO: don't need this arrow box now, but likely will shortly
         // conflateButton.createArrow(new ActionListener() {
         //     @Override
@@ -196,6 +198,8 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         // });
 
         removeAction = new RemoveAction();
+        removeButton = new SideButton(removeAction);
+        
 
         // add listeners to update enable state of buttons
         tabbedPane.addChangeListener(conflateAction);
@@ -212,15 +216,29 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         createLayout(tabbedPane, false, Arrays.asList(new SideButton[]{
                 new SideButton(new ConfigureAction()),
                 conflateButton,
-                new SideButton(removeAction)
+                removeButton
                 // new SideButton("Replace Geometry", false),
                 // new SideButton("Merge Tags", false),
                 // new SideButton("Remove", false)
         }));
     }
 
+    /* ---------------------------------------------------------------------------------- */
+    /* SimpleMatchListListener                                                            */
+    /* ---------------------------------------------------------------------------------- */
+
     @Override
     public void simpleMatchListChanged(SimpleMatchList list) {
+        updateTabTitles();
+    }
+
+    @Override
+    public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
+        updateTabTitles();
+    }
+
+    @Override
+    public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
         updateTabTitles();
     }
 
@@ -250,10 +268,10 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                 tr(marktr("Matches ({0})"), matches.size()));
         tabbedPane.setTitleAt(
                 tabbedPane.indexOfComponent(referenceOnlyList.getParent().getParent()),
-                tr(marktr("Reference only ({0})"), referenceOnlyListModel.size()));
+                tr(marktr("Reference only ({0})"), referenceOnlyListModel.getSize()));
         tabbedPane.setTitleAt(
                 tabbedPane.indexOfComponent(subjectOnlyList.getParent().getParent()),
-                tr(marktr("Subject only ({0})"), subjectOnlyListModel.size()));
+                tr(marktr("Subject only ({0})"), subjectOnlyListModel.getSize()));
     }
 
     private Component getSelectedTabComponent() {
@@ -305,8 +323,13 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         //same and different reference/subject layers
         settings.getReferenceDataSet().clearSelection();
         settings.getSubjectDataSet().clearSelection();
-        settings.getReferenceDataSet().addSelected(refSelected);
-        settings.getSubjectDataSet().addSelected(subSelected);
+        DataSet.removeSelectionListener(this);
+        try {
+            settings.getReferenceDataSet().addSelected(refSelected);
+            settings.getSubjectDataSet().addSelected(subSelected);
+        } finally {
+            DataSet.addSelectionListener(this);
+        }
     }
 
     class DoubleClickHandler extends MouseAdapter {
@@ -349,6 +372,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         Main.getLayerManager().removeLayerChangeListener(this);
         clear(true, true, true);
         settingsDialog.clear(true, true);
+        this.settings = null;
     }
 
     private void clear(boolean shouldClearReference, boolean shouldClearSubject, boolean shouldRemoveConflationLayer) {
@@ -378,23 +402,53 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                 settings.setSubjectSelection(null);
             }
         }
-        referenceOnlyListModel.clear();
-        subjectOnlyListModel.clear();
-        setMatches(new SimpleMatchList());
+        clearListsContentAndListeners();
     }
 
-    private void setMatches(SimpleMatchList matchList) {
-        matches.clear();
+    private void clearListsContentAndListeners() {
+        primitivesRemovedReferenceOnly.clear();
+        primitivesRemovedSubjectOnly.clear();
+        primitivesRemovedMatchByReference.clear();
+        primitivesRemovedMatchBySubject.clear();
         matches.removeAllConflationListChangedListener();
+        matches.clear();
+        referenceOnlyListModel.clear();
+        subjectOnlyListModel.clear();
+        updateTabTitles();
+    }
+
+    private void setListsContentAddListnersAndLayer(SimpleMatchList matchList,
+            Collection<OsmPrimitive> referenceOnlyList, Collection<OsmPrimitive> subjectOnlyList) {
+        clearListsContentAndListeners();
         matches = matchList;
         matchTableModel.setMatches(matches);
         matches.addConflationListChangedListener(conflateAction);
         matches.addConflationListChangedListener(removeAction);
         matches.addConflationListChangedListener(this);
+        // add conflation layer
+        try {
+            if (conflationLayer == null) {
+                conflationLayer = new ConflationLayer(matches);
+            }
+            if (!Main.getLayerManager().containsLayer(conflationLayer)) {
+                Main.getLayerManager().addLayer(conflationLayer);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
+        }
         if (conflationLayer != null) {
             conflationLayer.setMatches(matches);
         }
+        referenceOnlyListModel.addAll(referenceOnlyList);
+        subjectOnlyListModel.addAll(subjectOnlyList);
+        updateTabTitles();
+        settings.getSubjectDataSet().addDataSetListener(ConflationToggleDialog.this);
+        settings.getReferenceDataSet().addDataSetListener(ConflationToggleDialog.this);
     }
+
+    /* ---------------------------------------------------------------------------------- */
+    /* SelectionChangedListener                                                           */
+    /* ---------------------------------------------------------------------------------- */
 
     @Override
     public void selectionChanged(Collection<? extends OsmPrimitive> newSelection) {
@@ -404,13 +458,30 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             matchTable.getSelectionModel().clearSelection();
             boolean ensureVisible = true;
             for (OsmPrimitive item: newSelection) {
-                addObjectToSelection(item, ensureVisible);
-                ensureVisible = false;
+                if (addObjectToSelection(item, ensureVisible)) {
+                    ensureVisible = false;
+                }
             }
         }
     }
 
     private boolean addObjectToSelection(OsmPrimitive object, boolean ensureVisible) {
+        SimpleMatch c = matches.getMatchByReference(object);
+        if (c == null) {
+            c = matches.getMatchBySubject(object);
+        }
+        if (c != null) {
+            int index = matches.indexOf(c);
+            if (index >= 0) {
+                index = matchTable.convertRowIndexToView(index);
+                matchTable.getSelectionModel().addSelectionInterval(index, index);
+                if (ensureVisible) {
+                    tabbedPane.setSelectedIndex(0);
+                    matchTable.scrollRectToVisible(new Rectangle(matchTable.getCellRect(index, 0, true)));
+                }
+                return true;
+            }
+        }
         int index = referenceOnlyListModel.indexOf(object);
         if (index >= 0) {
             referenceOnlyList.getSelectionModel().addSelectionInterval(index, index);
@@ -426,22 +497,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             if (ensureVisible) {
                 tabbedPane.setSelectedIndex(2);
                 subjectOnlyList.ensureIndexIsVisible(index);
-            }
-            return true;
-        }
-        index = 0;
-        for (SimpleMatch c : matches) {
-            if ((c.getSubjectObject() == object) || (c.getReferenceObject() == object)) {
-                break;
-            }
-            index++;
-        }
-        if (index < matches.size()) {
-            index = matchTable.convertRowIndexToView(index);
-            matchTable.getSelectionModel().addSelectionInterval(index, index);
-            if (ensureVisible) {
-                tabbedPane.setSelectedIndex(0);
-                matchTable.scrollRectToVisible(new Rectangle(matchTable.getCellRect(index, 0, true)));
             }
             return true;
         }
@@ -549,10 +604,12 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     /**
      * Command to delete selected matches.
      */
-    class RemoveMatchCommand extends Command {
-        private final Collection<SimpleMatch> toRemove;
-        RemoveMatchCommand(Collection<SimpleMatch> toRemove) {
-            this.toRemove = toRemove;
+    static class RemoveMatchCommand extends Command {
+        private final ArrayList<SimpleMatch> toRemove;
+        private final SimpleMatchList matches;
+        RemoveMatchCommand(SimpleMatchList matches, Collection<SimpleMatch> toRemove) {
+            this.toRemove = new ArrayList<>(toRemove);
+            this.matches = matches;
         }
 
         @Override
@@ -580,7 +637,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    class RemoveUnmatchedObjectCommand extends Command {
+    static class RemoveUnmatchedObjectCommand extends Command {
         private final UnmatchedObjectListModel model;
         private final Collection<OsmPrimitive> objects;
 
@@ -631,7 +688,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         public void actionPerformed(ActionEvent e) {
             Component selComponent = getSelectedTabComponent();
             if (selComponent.equals(matchTable)) {
-                Main.main.undoRedo.add(new RemoveMatchCommand(matches.getSelected()));
+                Main.main.undoRedo.add(new RemoveMatchCommand(matches, matches.getSelected()));
             } else if (selComponent.equals(referenceOnlyList)) {
                 Main.main.undoRedo.add(
                         new RemoveUnmatchedObjectCommand(referenceOnlyListModel,
@@ -646,26 +703,34 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         @Override
         public void updateEnabledState() {
             Component selComponent = getSelectedTabComponent();
+            int selSize = 0;
             if (selComponent.equals(matchTable)) {
-                if (matches != null && matches.getSelected() != null &&
-                        !matches.getSelected().isEmpty())
-                    setEnabled(true);
-                else
-                    setEnabled(false);
-            } else if (selComponent.equals(referenceOnlyList) &&
-                    !referenceOnlyList.getSelectedValuesList().isEmpty()) {
-                setEnabled(true);
-            } else if (selComponent.equals(subjectOnlyList) &&
-                    !subjectOnlyList.getSelectedValuesList().isEmpty()) {
-                setEnabled(true);
-            } else {
-                setEnabled(false);
+                selSize = matches.getSelected().size();
+            } else if (selComponent.equals(referenceOnlyList)) {
+                selSize = referenceOnlyList.getSelectedValuesList().size();
+            } else if (selComponent.equals(subjectOnlyList)) {
+                selSize = subjectOnlyList.getSelectedValuesList().size();
             }
-
+            if (removeButton != null) {
+                removeButton.setText((selSize > 1) ? tr(marktr("Remove ({0})"), selSize) : tr("Remove"));
+            }
+            setEnabled(selSize > 0);
         }
+
+        /* ------------------------------------------------------------------------------ */
+        /* SimpleMatchListListener                                                        */
+        /* ------------------------------------------------------------------------------ */
 
         @Override
         public void simpleMatchListChanged(SimpleMatchList list) {
+        }
+
+        @Override
+        public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
+        }
+
+        @Override
+        public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
         }
 
         @Override
@@ -673,15 +738,24 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             updateEnabledState();
         }
 
+        /* ------------------------------------------------------------------------------ */
+        /* ChangeListener                                                                 */
+        /* ------------------------------------------------------------------------------ */
+
         @Override
         public void stateChanged(ChangeEvent ce) {
             updateEnabledState();
         }
 
+        /* ------------------------------------------------------------------------------ */
+        /* ListSelectionListener                                                          */
+        /* ------------------------------------------------------------------------------ */
+
         @Override
         public void valueChanged(ListSelectionEvent lse) {
             updateEnabledState();
         }
+
     }
 
     class ConflateAction extends JosmAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
@@ -695,14 +769,21 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            DataSet.removeSelectionListener(ConflationToggleDialog.this);
+            DataSet subjectDataSet = settings.getSubjectDataSet();
+            if (subjectDataSet != null) {
+                subjectDataSet.removeDataSetListener(ConflationToggleDialog.this);
+            }
             try {
-                DataSet.removeSelectionListener(ConflationToggleDialog.this);
                 if (getSelectedTabComponent().equals(matchTable))
                     conflateMatchActionPerformed();
                 else if (getSelectedTabComponent().equals(referenceOnlyList))
                     conflateUnmatchedObjectActionPerformed();
             } finally {
                 DataSet.addSelectionListener(ConflationToggleDialog.this);
+                if (subjectDataSet != null) {
+                    subjectDataSet.addDataSetListener(ConflationToggleDialog.this);
+                }
             }
         }
 
@@ -752,19 +833,33 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void updateEnabledState() {
-            if (getSelectedTabComponent().equals(matchTable) &&
-                    matches != null && matches.getSelected() != null &&
-                    !matches.getSelected().isEmpty())
-                setEnabled(true);
-            else if (getSelectedTabComponent().equals(referenceOnlyList) &&
-                    !referenceOnlyList.getSelectedValuesList().isEmpty())
-                setEnabled(true);
-            else
-                setEnabled(false);
+            Component selComponent = getSelectedTabComponent();
+            int selSize = 0;
+            if (selComponent.equals(matchTable)) {
+                selSize = matches.getSelected().size();
+            } else if (selComponent.equals(referenceOnlyList)) {
+                selSize = referenceOnlyList.getSelectedValuesList().size();
+            }
+            if (conflateButton != null) {
+                conflateButton.setText((selSize > 1) ? tr(marktr("Conflate ({0})"), selSize) : tr("Conflate"));
+            }
+            setEnabled(selSize > 0);
         }
+
+        /* ------------------------------------------------------------------------------ */
+        /* SimpleMatchListListener                                                        */
+        /* ------------------------------------------------------------------------------ */
 
         @Override
         public void simpleMatchListChanged(SimpleMatchList list) {
+        }
+
+        @Override
+        public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
+        }
+
+        @Override
+        public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
         }
 
         @Override
@@ -772,15 +867,24 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             updateEnabledState();
         }
 
+        /* ------------------------------------------------------------------------------ */
+        /* ChangeListener                                                                 */
+        /* ------------------------------------------------------------------------------ */
+
         @Override
         public void stateChanged(ChangeEvent ce) {
             updateEnabledState();
         }
 
+        /* ------------------------------------------------------------------------------ */
+        /* ListSelectionListener                                                          */
+        /* ------------------------------------------------------------------------------ */
+
         @Override
         public void valueChanged(ListSelectionEvent lse) {
             updateEnabledState();
         }
+
     }
 
     /**
@@ -889,35 +993,66 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    @Override
-    public void primitivesAdded(PrimitivesAddedEvent event) {
-    }
+    /* ---------------------------------------------------------------------------------- */
+    /* DataSetListener                                                                    */
+    /* ---------------------------------------------------------------------------------- */
 
     @Override
-    public void primitivesRemoved(PrimitivesRemovedEvent event) {
+    public void primitivesAdded(PrimitivesAddedEvent event) {
+        // In case of primitive re-added because of Undo action, restore the
+        // corresponding conflation lists case.
         if (settings != null) {
             DataSet dataSet = event.getDataset();
             if (dataSet == settings.getReferenceDataSet()) {
                 for (OsmPrimitive p : event.getPrimitives()) {
-                    // TODO: use hashmap
-                    for (SimpleMatch c : matches) {
-                        if (c.getReferenceObject().equals(p)) {
-                            matches.remove(c);
-                            break;
-                        }
+                    SimpleMatch m = primitivesRemovedMatchByReference.remove(p);
+                    if (m != null) {
+                        matches.add(m);
                     }
-                    referenceOnlyListModel.removeElement(p);
+                    if (primitivesRemovedReferenceOnly.remove(p)) {
+                        referenceOnlyListModel.addElement(p);
+                    }
                 }
             } else if (dataSet == settings.getSubjectDataSet()) {
                 for (OsmPrimitive p : event.getPrimitives()) {
-                    // TODO: use hashmap
-                    for (SimpleMatch c : matches) {
-                        if (c.getSubjectObject().equals(p)) {
-                            matches.remove(c);
-                            break;
-                        }
+                    SimpleMatch m = primitivesRemovedMatchBySubject.remove(p);
+                    if (m != null) {
+                        matches.add(m);
                     }
-                    subjectOnlyListModel.removeElement(p);
+                    if (primitivesRemovedSubjectOnly.remove(p)) {
+                        subjectOnlyListModel.addElement(p);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void primitivesRemoved(PrimitivesRemovedEvent event) {
+        // Remove the corresponding cases from the conflation lists.
+        if (settings != null) {
+            DataSet dataSet = event.getDataset();
+            if (dataSet == settings.getReferenceDataSet()) {
+                for (OsmPrimitive p : event.getPrimitives()) {
+                    SimpleMatch m = matches.getMatchByReference(p);
+                    if (m != null) {
+                        primitivesRemovedMatchByReference.put(p, m);
+                        matches.remove(m);
+                    }
+                    if (referenceOnlyListModel.removeElement(p)) {
+                        primitivesRemovedReferenceOnly.add(p);
+                    }
+                }
+            } else if (dataSet == settings.getSubjectDataSet()) {
+                for (OsmPrimitive p : event.getPrimitives()) {
+                    SimpleMatch m = matches.getMatchBySubject(p);
+                    if (m != null) {
+                        primitivesRemovedMatchBySubject.put(p, m);
+                        matches.remove(m);
+                    }
+                    if (subjectOnlyListModel.removeElement(p)) {
+                        primitivesRemovedSubjectOnly.add(p);
+                    }
                 }
             }
         }
@@ -945,7 +1080,47 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
     @Override
     public void dataChanged(DataChangedEvent event) {
+        // In case of primitive re-added because of Undo action, restore the
+        // corresponding conflation lists case.
+        if (settings != null) {
+            DataSet dataSet = event.getDataset();
+            if (dataSet == settings.getReferenceDataSet()) {
+                primitivesRemovedMatchByReference.entrySet().removeIf(entry -> {
+                    if (!entry.getKey().isDeleted()) {
+                        matches.add(entry.getValue());
+                        return true;
+                    }
+                    return false;
+                });
+                primitivesRemovedReferenceOnly.removeIf(osmPrimitive -> {
+                    if (!osmPrimitive.isDeleted()) {
+                        referenceOnlyListModel.addElement(osmPrimitive);
+                        return true;
+                    }
+                    return false;
+                });
+            } else if (dataSet == settings.getSubjectDataSet()) {
+                primitivesRemovedMatchBySubject.entrySet().removeIf(entry -> {
+                    if (!entry.getKey().isDeleted()) {
+                        matches.add(entry.getValue());
+                        return true;
+                    }
+                    return false;
+                });
+                primitivesRemovedSubjectOnly.removeIf(osmPrimitive -> {
+                    if (!osmPrimitive.isDeleted()) {
+                        subjectOnlyListModel.addElement(osmPrimitive);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        }
     }
+
+    /* ---------------------------------------------------------------------------------- */
+    /* LayerChangeListener                                                                */
+    /* ---------------------------------------------------------------------------------- */
 
     @Override
     public void layerAdded(LayerAddEvent e) {
@@ -971,149 +1146,37 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     }
 
     /**
-     * Create FeatureSchema using union of all keys from all selected primitives
+     * Launch the matching computation in a PleaseWaitRunnable window.
      */
-    private FeatureSchema createSchema(Collection<OsmPrimitive> prims) {
-        Set<String> keys = new HashSet<>();
-        for (OsmPrimitive prim : prims) {
-            keys.addAll(prim.getKeys().keySet());
-        }
-        FeatureSchema schema = new FeatureSchema();
-        schema.addAttribute("__GEOMETRY__", AttributeType.GEOMETRY);
-        for (String key : keys) {
-            schema.addAttribute(key, AttributeType.STRING);
-        }
-        return schema;
-    }
-
-    private FeatureCollection createFeatureCollection(Collection<OsmPrimitive> prims) {
-        FeatureDataset dataset = new FeatureDataset(createSchema(prims));
-        //TODO: use factory instead of passing converter
-        JTSConverter converter = new JTSConverter(true);
-        for (OsmPrimitive prim : prims) {
-            dataset.add(new OsmFeature(prim, converter));
-        }
-        return dataset;
-    }
-
-    /**
-     * Progress monitor for use with JCS
-     */
-    private class JosmTaskMonitor extends PleaseWaitProgressMonitor implements TaskMonitor {
-
-        @Override
-        public void report(String description) {
-            subTask(description);
-        }
-
-        @Override
-        public void report(int itemsDone, int totalItems, String itemDescription) {
-            subTask(String.format("Processing %d of %d %s", itemsDone, totalItems, itemDescription));
-        }
-
-        @Override
-        public void report(Exception exception) {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-
-        @Override
-        public void allowCancellationRequests() {
-            setCancelable(true);
-        }
-
-        @Override
-        public boolean isCancelRequested() {
-            return isCanceled();
-        }
-
-    }
-
-    private SimpleMatchList generateMatches(SimpleMatchSettings settings) {
-        JosmTaskMonitor monitor = new JosmTaskMonitor();
-        monitor.beginTask("Generating matches");
-
-        // create Features and collections from primitive selections
-        Set<OsmPrimitive> allPrimitives = new HashSet<>();
-        allPrimitives.addAll(settings.getReferenceSelection());
-        allPrimitives.addAll(settings.getSubjectSelection());
-        FeatureCollection allFeatures = createFeatureCollection(allPrimitives);
-        FeatureCollection refColl = new FeatureDataset(allFeatures.getFeatureSchema());
-        FeatureCollection subColl = new FeatureDataset(allFeatures.getFeatureSchema());
-        for (Feature f : allFeatures.getFeatures()) {
-            OsmFeature osmFeature = (OsmFeature) f;
-            if (settings.getReferenceSelection().contains(osmFeature.getPrimitive()))
-                refColl.add(osmFeature);
-            if (settings.getSubjectSelection().contains(osmFeature.getPrimitive()))
-                subColl.add(osmFeature);
-        }
-
-        //TODO: pass to MatchFinderPanel to use as hint/default for DistanceMatchers
-        // get maximum possible distance so scores can be scaled (FIXME: not quite accurate)
-        // Envelope envelope = refColl.getEnvelope();
-        // envelope.expandToInclude(subColl.getEnvelope());
-        // double maxDistance = Point2D.distance(
-        //     envelope.getMinX(),
-        //     envelope.getMinY(),
-        //     envelope.getMaxX(),
-        //     envelope.getMaxY());
-
-        // build matcher
-        FCMatchFinder finder = settings.getMatchFinder();
-
-        // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
-        // FIXME: fix match functions to work on point/linestring features as well
-        // find matches
-        Map<Feature, Matches> map = finder.match(refColl, subColl, monitor);
-
-        monitor.subTask("Finishing match list");
-
-        // convert to simple one-to-one match
-        SimpleMatchList list = new SimpleMatchList();
-        for (Map.Entry<Feature, Matches> entry: map.entrySet()) {
-            OsmFeature target = (OsmFeature) entry.getKey();
-            OsmFeature subject = (OsmFeature) entry.getValue().getTopMatch();
-            if (target != null && subject != null)
-                list.add(new SimpleMatch(target.getPrimitive(), subject.getPrimitive(),
-                        entry.getValue().getTopScore()));
-        }
-
-        monitor.finishTask();
-        monitor.close();
-        return list;
-    }
-
     private void performMatching() {
-        setMatches(generateMatches(settings));
+        Main.worker.submit(new PleaseWaitRunnable(tr("Generating matches")) {
 
-        // populate unmatched objects
-        List<OsmPrimitive> referenceOnly = new ArrayList<>(settings.getReferenceSelection());
-        List<OsmPrimitive> subjectOnly = new ArrayList<>(settings.getSubjectSelection());
-        for (SimpleMatch match : matches) {
-            referenceOnly.remove(match.getReferenceObject());
-            subjectOnly.remove(match.getSubjectObject());
-        }
+            private SimpleMatchList computedMatches;
+            private Collection<OsmPrimitive> referenceOnlyList;
+            private Collection<OsmPrimitive> subjectOnlyList;
 
-        referenceOnlyListModel.clear();
-        referenceOnlyListModel.addAll(referenceOnly);
-        subjectOnlyListModel.clear();
-        subjectOnlyListModel.addAll(subjectOnly);
-
-        updateTabTitles();
-
-        settings.getSubjectDataSet().addDataSetListener(this);
-        settings.getReferenceDataSet().addDataSetListener(this);
-        // add conflation layer
-        try {
-            if (conflationLayer == null) {
-                conflationLayer = new ConflationLayer(matches);
+            @Override
+            protected void realRun() throws SAXException, IOException, OsmTransferException {
+                computedMatches = new SimpleMatchList();
+                computedMatches.addAll(MatchesComputation.generateMatches(settings, getProgressMonitor()));
+                if (!getProgressMonitor().isCanceled()) {
+                    referenceOnlyList = settings.getReferenceSelection().stream().filter(
+                            r -> !computedMatches.hasMatchForReference(r)).collect(Collectors.toList());
+                    subjectOnlyList = settings.getSubjectSelection().stream().filter(
+                            s -> !computedMatches.hasMatchForSubject(s)).collect(Collectors.toList());
+                }
             }
-            if (!Main.getLayerManager().containsLayer(conflationLayer)) {
-                Main.getLayerManager().addLayer(conflationLayer);
+
+            @Override
+            protected void finish() {
+                if (!getProgressMonitor().isCanceled()) {
+                    setListsContentAddListnersAndLayer(computedMatches, referenceOnlyList, subjectOnlyList);
+                }
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(Main.parent, ex.toString(), "Error adding conflation layer", JOptionPane.ERROR_MESSAGE);
-        }
-        // matches.addConflationListChangedListener(conflationLayer);
+
+            @Override
+            protected void cancel() {}
+        });
     }
 
     class UnmatchedListDataListener implements ListDataListener {
