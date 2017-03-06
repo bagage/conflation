@@ -410,8 +410,8 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         primitivesRemovedSubjectOnly.clear();
         primitivesRemovedMatchByReference.clear();
         primitivesRemovedMatchBySubject.clear();
-        matches.removeAllConflationListChangedListener();
         matches.clear();
+        matches.removeAllConflationListChangedListener();
         referenceOnlyListModel.clear();
         subjectOnlyListModel.clear();
         updateTabTitles();
@@ -576,7 +576,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             } else {
                 setBackground(table.getBackground());
                 setForeground(table.getForeground());
-                if (columnValue.equals("Conflicts!")) {
+                if ("Conflicts!".equals(columnValue)) {
                     setBackground(java.awt.Color.red);
                 } else {
                     setBackground(java.awt.Color.green);

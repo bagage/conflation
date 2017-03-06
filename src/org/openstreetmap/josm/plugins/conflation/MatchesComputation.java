@@ -22,12 +22,13 @@ import com.vividsolutions.jump.feature.Feature;
 import com.vividsolutions.jump.feature.FeatureCollection;
 import com.vividsolutions.jump.feature.FeatureDataset;
 import com.vividsolutions.jump.feature.FeatureSchema;
+import com.vividsolutions.jump.feature.IndexedFeatureCollection;
 import com.vividsolutions.jump.task.TaskMonitor;
 
 public final class MatchesComputation {
-    
+
     private MatchesComputation() {}
-    
+
     /**
      * Generates a list of matches from the given user settings.
      * @param settings the setting to use: list of objects to match, the match finder to use...
@@ -44,7 +45,7 @@ public final class MatchesComputation {
         allPrimitives.addAll(refPrimitives);
         allPrimitives.addAll(subPrimitives);
         FeatureCollection allFeatures = createFeatureCollection(allPrimitives);
-        
+
         FeatureCollection refColl = new FeatureDataset(allFeatures.getFeatureSchema());
         FeatureCollection subColl = new FeatureDataset(allFeatures.getFeatureSchema());
         for (Feature f : allFeatures.getFeatures()) {
@@ -54,8 +55,12 @@ public final class MatchesComputation {
             if (subPrimitives.contains(osmFeature.getPrimitive()))
                 subColl.add(osmFeature);
         }
-        
-        //TODO: pass to MatchFindrefPrimitiveserPanel to use as hint/default for DistanceMatchers
+
+        // Index the collection for efficient search with WindowMatcher
+        refColl = new IndexedFeatureCollection(refColl);
+        subColl = new IndexedFeatureCollection(subColl);
+
+        //TODO: pass to MatchFinderPanel to use as hint/default for DistanceMatchers
         // get maximum possible distance so scores can be scaled (FIXME: not quite accurate)
         // Envelope envelope = refColl.getEnvelope();
         // envelope.expandToInclude(subColl.getEnvelope());
@@ -85,7 +90,7 @@ public final class MatchesComputation {
                         entry.getValue().getTopScore()));
         }
         return list;
-    }        
+    }
 
     /**
      * Create FeatureSchema using union of all keys from all selected primitives
@@ -117,15 +122,15 @@ public final class MatchesComputation {
      * Progress monitor for use with JCS linked to a JOSM ProgressMonitor.
      */
     private static class TaskMonitorJosmAdapter implements TaskMonitor {
-        
+
         private final ProgressMonitor josmMonitor;
         private final HashMap<String, String> translations = new HashMap<>();
         {
             translations.put("Finding matches", tr("Finding matches"));
             translations.put("Sorting scores", tr("Sorting scores"));
-            translations.put("Discarding inferior matches", tr("Discarding inferior matches"));            
+            translations.put("Discarding inferior matches", tr("Discarding inferior matches"));
         }
-        
+
         TaskMonitorJosmAdapter(ProgressMonitor josmMonitor) {
             this.josmMonitor = josmMonitor;
         }
@@ -155,6 +160,6 @@ public final class MatchesComputation {
             return josmMonitor.isCanceled();
         }
 
-    }   
+    }
 
 }

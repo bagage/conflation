@@ -4,10 +4,12 @@ package org.openstreetmap.josm.plugins.conflation;
 import static org.openstreetmap.josm.tools.I18n.tr;
 
 import java.awt.Dimension;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
@@ -15,6 +17,8 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.CompoundBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.AbstractDistanceMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.BasicFCMatchFinder;
@@ -26,10 +30,12 @@ import com.vividsolutions.jcs.conflate.polygonmatch.FeatureMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.HausdorffDistanceMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.IdenticalFeatureFilter;
 import com.vividsolutions.jcs.conflate.polygonmatch.OneToOneFCMatchFinder;
+import com.vividsolutions.jcs.conflate.polygonmatch.WindowMatcher;
 
 public class MatchFinderPanel extends JPanel {
     private final JComboBox<String> matchFinderComboBox;
     private final CentroidDistanceComponent centroidDistanceComponent;
+    private final HausdorffDistanceComponent hausdorffDistanceComponent;
 
     public MatchFinderPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -51,12 +57,22 @@ public class MatchFinderPanel extends JPanel {
         centroidDistanceComponent = new CentroidDistanceComponent();
         centroidDistanceComponent.setAlignmentX(LEFT_ALIGNMENT);
         add(centroidDistanceComponent);
+
+        hausdorffDistanceComponent = new HausdorffDistanceComponent();
+        hausdorffDistanceComponent.setAlignmentX(LEFT_ALIGNMENT);
+        add(hausdorffDistanceComponent);
     }
 
     public FCMatchFinder getMatchFinder() {
-        IdenticalFeatureFilter identical = new IdenticalFeatureFilter();
-        FeatureMatcher[] matchers = {centroidDistanceComponent.getFeatureMatcher(), identical};
-        ChainMatcher chain = new ChainMatcher(matchers);
+        ArrayList<FeatureMatcher> matchers = new ArrayList<>();
+        // Use a WindowMatcher limit the search area
+        matchers.add(new WindowMatcher(centroidDistanceComponent.getValue()));
+        matchers.add(centroidDistanceComponent.getFeatureMatcher());
+        if (hausdorffDistanceComponent.isSelected()) {
+            matchers.add(hausdorffDistanceComponent.getFeatureMatcher());
+        }
+        matchers.add(new IdenticalFeatureFilter());
+        ChainMatcher chain = new ChainMatcher(matchers.toArray(new FeatureMatcher[matchers.size()]));
         BasicFCMatchFinder basicFinder = new BasicFCMatchFinder(chain);
         FCMatchFinder finder;
         // FIXME: use better method of specifying match finder
@@ -71,8 +87,9 @@ public class MatchFinderPanel extends JPanel {
 
     abstract class DistanceComponent extends AbstractScoreComponent {
         SpinnerNumberModel threshDistanceSpinnerModel;
+        boolean selected;
 
-        DistanceComponent(String title) {
+        DistanceComponent(String title, boolean mandatory) {
             setBorder(new CompoundBorder(
                     BorderFactory.createTitledBorder(tr(title)),
                     BorderFactory.createEmptyBorder(5, 5, 5, 5)));
@@ -83,6 +100,7 @@ public class MatchFinderPanel extends JPanel {
             JLabel threshDistanceLabel = new JLabel(tr("Threshold distance"));
             threshDistanceLabel.setToolTipText(
                     tr("Distances greater than this will result in a score of zero."));
+
             //TODO: how to set reasonable default?
             threshDistanceSpinnerModel = new SpinnerNumberModel(20, 0, Double.MAX_VALUE, 1);
             JSpinner threshDistanceSpinner = new JSpinner(threshDistanceSpinnerModel);
@@ -91,35 +109,61 @@ public class MatchFinderPanel extends JPanel {
                     ).getTextField();
             spinnerTextField.setColumns(10);
 
+            selected = mandatory;
+            if (!mandatory) {
+                JCheckBox checkbox = new JCheckBox();
+                checkbox.setSelected(selected);
+                threshDistanceLabel.setEnabled(selected);
+                threshDistanceSpinner.setEnabled(selected);
+                checkbox.addChangeListener(new ChangeListener() {
+                    @Override
+                    public void stateChanged(ChangeEvent e) {
+                        selected = checkbox.isSelected();
+                        threshDistanceLabel.setEnabled(selected);
+                        threshDistanceSpinner.setEnabled(selected);
+                    }
+                });
+                panel.add(checkbox);
+                panel.add(Box.createRigidArea(new Dimension(5, 0)));
+            }
+
             panel.add(threshDistanceLabel);
             panel.add(Box.createRigidArea(new Dimension(5, 0)));
             panel.add(threshDistanceSpinner);
             add(panel);
         }
+
+        double getValue() {
+            return threshDistanceSpinnerModel.getNumber().doubleValue();
+        }
+
+        boolean isSelected() {
+            return selected;
+        }
     }
 
     class CentroidDistanceComponent extends DistanceComponent {
         CentroidDistanceComponent() {
-            super(tr("Centroid distance"));
+            super(tr("Centroid distance"), true);
         }
 
         @Override
         FeatureMatcher getFeatureMatcher() {
             AbstractDistanceMatcher matcher = new CentroidDistanceMatcher();
-            matcher.setMaxDistance(threshDistanceSpinnerModel.getNumber().doubleValue());
+            matcher.setMaxDistance(getValue());
             return matcher;
         }
     }
 
     class HausdorffDistanceComponent extends DistanceComponent {
         HausdorffDistanceComponent() {
-            super(tr("Hausdorff distance"));
+            super(tr("Hausdorff distance"), false);
         }
 
         @Override
         FeatureMatcher getFeatureMatcher() {
             AbstractDistanceMatcher matcher = new HausdorffDistanceMatcher();
-            matcher.setMaxDistance(threshDistanceSpinnerModel.getNumber().doubleValue());
+            matcher.setMaxDistance(getValue());
             return matcher;
         }
     }
