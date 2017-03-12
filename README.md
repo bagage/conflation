@@ -1,0 +1,14 @@
+README 
+======
+
+This is a JOSM plugin for conflating data in OSM. Conflation in GIS is the process
+of combining two or more sources of data to produce a higher quality version,
+in terms of spatial accuracy and/or attributed data (tags).
+
+ * Original author is Josh Doe <josh@joshdoe.com>
+ * The code is licensed under GPL v2 or later.
+ * Conflation using Java Conflation Suite (see OpenJump project)
+ * This is an experimental plugin and not ready for widespread use
+
+http://wiki.openstreetmap.org/wiki/JOSM/Plugins/Conflation
+

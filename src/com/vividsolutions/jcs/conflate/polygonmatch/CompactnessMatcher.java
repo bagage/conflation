@@ -59,6 +59,8 @@ public class CompactnessMatcher extends IndependentCandidateMatcher {
   }
 
   protected double characteristic(Geometry g) {
-    return 4 * Math.PI * g.getArea() / Math.pow(g.getLength(), 2);
+      if (g.getLength() == 0.0)
+          return 1.0;
+      return 4 * Math.PI * g.getArea() / Math.pow(g.getLength(), 2);
   }
 }

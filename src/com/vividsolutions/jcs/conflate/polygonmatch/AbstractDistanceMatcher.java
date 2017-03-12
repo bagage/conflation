@@ -5,6 +5,11 @@ import com.vividsolutions.jts.geom.Geometry;
 import java.awt.geom.Point2D;
 
 public abstract class AbstractDistanceMatcher extends IndependentCandidateMatcher {
+
+    /**
+     * The maximum distance, which will give a score of 0.
+     * Field not part of the original JCS code.
+     */
     protected double maxDistance = 0;
     
     @Override
@@ -33,6 +38,11 @@ public abstract class AbstractDistanceMatcher extends IndependentCandidateMatche
             envelope.getMaxY());
     }
 
+    /**
+     * Set he maximum distance, which will give a score of 0.
+     * Method not part of the original JCS code.
+     * @param maxDistance the maximum distance.
+     */
     public void setMaxDistance(double maxDistance) {
         if (maxDistance < 0)
             this.maxDistance = 0;

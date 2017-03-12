@@ -9,8 +9,19 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public class HausdorffDistanceMatcher extends AbstractDistanceMatcher {
 
+    public HausdorffDistanceMatcher() {}
+
+    /**
+     * Constructor not part of the original JCS code.
+     * @param maxDistance the maximum distance, which will give a score of 0.
+     */
+    public HausdorffDistanceMatcher(double maxDistance) {
+        super();
+        setMaxDistance(maxDistance);
+    }
+
     protected double distance(Geometry target, Geometry candidate) {
         return new VertexHausdorffDistance(target, candidate).distance();
     }
-    
+
 }
