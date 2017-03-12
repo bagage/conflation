@@ -53,7 +53,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
         super();
         distanceComboBox.setSelectedIndex(1);
         threshDistanceField.setToolTipText(tr("Maximum distance"));
-        tagsField.setToolTipText("List of tags to match");
+        tagsField.setToolTipText(tr("List of tags to match"));
         GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(

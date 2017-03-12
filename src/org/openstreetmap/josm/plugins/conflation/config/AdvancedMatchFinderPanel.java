@@ -273,8 +273,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         filterByWindowPanel.setLayout(gridBagLayout7);
         filterByWindowLabel.setText(tr("Filter by window. Buffer: "));
         unionLabel1.setText(tr("Union up to "));
-        unionLabel2.setText(tr(" adjacent Layer-A features"));
-        // FIXME: Replace "Layer-A" text by either "Reference" or "Subject" as we name them, I don't know to which one Layer-A correspond
+        unionLabel2.setText(tr(" adjacent Reference features"));
         weightLabel.setText(tr("Weight"));
         centroidLabel.setText(tr("Centroid Distance"));
         centroidPanel.setLayout(centroidLayout);
@@ -291,6 +290,9 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         levenshteinTagsPanel.setLayout(levenshteinTagsLayout);
         exactTagsLabel.setText(tr("Tags (Exact Match): "));
         levenshteinTagsLabel.setText(tr("Tags (Levenshtein Distance): "));
+        levenshteinTagsField.setToolTipText(tr("List of tags to match"));
+        exactTagsField.setToolTipText(tr("List of tags to match"));
+
 
         filterByAreaTextArea.setEnabled(false);
         filterByAreaTextArea.setBorder(null);
