@@ -23,7 +23,7 @@ public class OsmFeature extends AbstractBasicFeature {
         primitive = prim;
         Map<String, String> keys = prim.getKeys();
         attributes = new Object[keys.size() + 1];
-        getSchema().addAttribute("GEOMETRY", AttributeType.GEOMETRY);
+        getSchema().addAttribute("__GEOMETRY__", AttributeType.GEOMETRY);
         for (String key : keys.keySet()) {
             getSchema().addAttribute(key, AttributeType.STRING);
             setAttribute(key, keys.get(key));
@@ -64,6 +64,6 @@ public class OsmFeature extends AbstractBasicFeature {
         // FIXME: should work most of the time, GeoAPI more robust, need to
         // consider the dataset (e.g. two non-uploaded layers can have different
         // objects with the same id
-        return (int) primitive.getId();
+        return (int) primitive.getUniqueId();
     }
 }

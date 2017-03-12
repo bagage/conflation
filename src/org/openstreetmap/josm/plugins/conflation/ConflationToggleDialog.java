@@ -72,6 +72,7 @@ import org.openstreetmap.josm.gui.layer.LayerManager.LayerOrderChangeEvent;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerRemoveEvent;
 import org.openstreetmap.josm.gui.widgets.PopupMenuLauncher;
 import org.openstreetmap.josm.io.OsmTransferException;
+import org.openstreetmap.josm.plugins.conflation.config.SettingsDialog;
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryException;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.InputMapUtils;
@@ -125,6 +126,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                     if (settingsDialog.getValue() == 1) {
                         clear(true, true, false);
                         settings = settingsDialog.getSettings();
+                        settingsDialog.savePreferences();
                         performMatching();
                     }
                 }
@@ -199,7 +201,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         removeAction = new RemoveAction();
         removeButton = new SideButton(removeAction);
-        
 
         // add listeners to update enable state of buttons
         tabbedPane.addChangeListener(conflateAction);
@@ -1154,6 +1155,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             private SimpleMatchList computedMatches;
             private Collection<OsmPrimitive> referenceOnlyList;
             private Collection<OsmPrimitive> subjectOnlyList;
+            boolean executionOk = false;
 
             @Override
             protected void realRun() throws SAXException, IOException, OsmTransferException {
@@ -1165,11 +1167,12 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                     subjectOnlyList = settings.getSubjectSelection().stream().filter(
                             s -> !computedMatches.hasMatchForSubject(s)).collect(Collectors.toList());
                 }
+                executionOk = true;
             }
 
             @Override
             protected void finish() {
-                if (!getProgressMonitor().isCanceled()) {
+                if (!getProgressMonitor().isCanceled() && executionOk) {
                     setListsContentAddListnersAndLayer(computedMatches, referenceOnlyList, subjectOnlyList);
                 }
             }
