@@ -41,7 +41,6 @@ public class OsmNormalizeRule implements NormalizeRule {
         } else {
             return rulesMap.getOrDefault(attributeName, defaultRules);
         }
-
     }
 
 

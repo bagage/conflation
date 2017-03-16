@@ -3,119 +3,89 @@
 package org.openstreetmap.josm.plugins.conflation;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
+
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+
+
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /**
- *
+ * Result of the configuration {@Link SettingsDialog}.
  * @author joshdoe
  */
 public class SimpleMatchSettings {
-    private List<OsmPrimitive> subjectSelection;
-    private List<OsmPrimitive> referenceSelection;
-    private OsmDataLayer referenceLayer;
-    private DataSet subjectDataSet;
-    private OsmDataLayer subjectLayer;
-    private DataSet referenceDataSet;
-    private FCMatchFinder matchFinder;
+
+    public List<OsmPrimitive> subjectSelection;
+    public List<OsmPrimitive> referenceSelection;
+    public OsmDataLayer referenceLayer;
+    public DataSet subjectDataSet;
+    public OsmDataLayer subjectLayer;
+    public DataSet referenceDataSet;
+    public FCMatchFinder matchFinder;
+
+    /*=
+     * If conflation should replace the geometry.
+     */
+    public boolean isReplacingGeometry;
 
     /**
-     * @return the subjectSelection
+     * List of tags to merge during conflation.
+     * Should be set to the {@link ALL} constant to mean all tags.
      */
-    public List<OsmPrimitive> getSubjectSelection() {
-        return subjectSelection;
-    }
+    public Collection<String> mergeTags;
 
     /**
-     * @param subjectSelection the subjectSelection to set
+     * List of tags to overwrite without confirmation during conflation.
      */
-    public void setSubjectSelection(List<OsmPrimitive> subjectSelection) {
-        this.subjectSelection = subjectSelection;
-    }
+    public Collection<String> overwriteTags;
+
 
     /**
-     * @return the referenceSelection
+     * A Collection that always answer true when asked if it contains any object.
      */
-    public List<OsmPrimitive> getReferenceSelection() {
-        return referenceSelection;
-    }
+    public static final Collection<String> ALL = new Collection<String>() {
+        @Override public int size() {
+            return Integer.MAX_VALUE; }
 
-    /**
-     * @param referenceSelection the referenceSelection to set
-     */
-    public void setReferenceSelection(List<OsmPrimitive> referenceSelection) {
-        this.referenceSelection = referenceSelection;
-    }
+        @Override public boolean isEmpty() {
+            return false; }
 
-    /**
-     * @return the referenceLayer
-     */
-    public OsmDataLayer getReferenceLayer() {
-        return referenceLayer;
-    }
+        @Override public boolean contains(Object o) {
+            return true; }
 
-    /**
-     * @param referenceLayer the referenceLayer to set
-     */
-    public void setReferenceLayer(OsmDataLayer referenceLayer) {
-        this.referenceLayer = referenceLayer;
-    }
+        @Override public boolean containsAll(Collection<?> c) {
+            return true; }
 
-    /**
-     * @return the subjectDataSet
-     */
-    public DataSet getSubjectDataSet() {
-        return subjectDataSet;
-    }
+        @Override public Iterator<String> iterator() {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @param subjectDataSet the subjectDataSet to set
-     */
-    public void setSubjectDataSet(DataSet subjectDataSet) {
-        this.subjectDataSet = subjectDataSet;
-    }
+        @Override public Object[] toArray() {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @return the subjectLayer
-     */
-    public OsmDataLayer getSubjectLayer() {
-        return subjectLayer;
-    }
+        @Override public <T> T[] toArray(T[] a) {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @param subjectLayer the subjectLayer to set
-     */
-    public void setSubjectLayer(OsmDataLayer subjectLayer) {
-        this.subjectLayer = subjectLayer;
-    }
+        @Override public boolean add(String e) {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @return the referenceDataSet
-     */
-    public DataSet getReferenceDataSet() {
-        return referenceDataSet;
-    }
+        @Override public boolean remove(Object o) {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @param referenceDataSet the referenceDataSet to set
-     */
-    public void setReferenceDataSet(DataSet referenceDataSet) {
-        this.referenceDataSet = referenceDataSet;
-    }
+        @Override public boolean addAll(Collection<? extends String> c) {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @return the matchFinder
-     */
-    public FCMatchFinder getMatchFinder() {
-        return matchFinder;
-    }
+        @Override public boolean removeAll(Collection<?> c) {
+            throw new UnsupportedOperationException(); }
 
-    /**
-     * @param matchFinder the matchFinder to set
-     */
-    public void setMatchFinder(FCMatchFinder matchFinder) {
-        this.matchFinder = matchFinder;
-    }
+        @Override public boolean retainAll(Collection<?> c) {
+            throw new UnsupportedOperationException(); }
+
+        @Override public void clear() {
+            throw new UnsupportedOperationException(); }
+    };
 }
+

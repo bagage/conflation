@@ -1,9 +1,10 @@
 // License: GPL. For details, see LICENSE file.
 // Copyright 2012 by Josh Doe and others.
-package org.openstreetmap.josm.plugins.conflation;
+package org.openstreetmap.josm.plugins.conflation.command;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import javax.swing.Icon;
 import org.openstreetmap.josm.command.AddPrimitivesCommand;
@@ -12,6 +13,9 @@ import org.openstreetmap.josm.command.PseudoCommand;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.PrimitiveData;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
+import org.openstreetmap.josm.plugins.conflation.ConflationUtils;
+import org.openstreetmap.josm.plugins.conflation.UnmatchedObjectListModel;
+
 import static org.openstreetmap.josm.tools.I18n.trn;
 import org.openstreetmap.josm.tools.ImageProvider;
 
@@ -37,7 +41,7 @@ public class ConflateUnmatchedObjectCommand extends Command {
 
     @Override
     public void fillModifiedData(Collection<OsmPrimitive> modified, Collection<OsmPrimitive> deleted, Collection<OsmPrimitive> added) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        addPrimitivesCommand.fillModifiedData(modified, deleted, added);
     }
 
     @Override
@@ -67,7 +71,10 @@ public class ConflateUnmatchedObjectCommand extends Command {
 
     @Override
     public Collection<? extends OsmPrimitive> getParticipatingPrimitives() {
-        return unmatchedObjects;
+        HashSet<OsmPrimitive> prims = new HashSet<>();
+        prims.addAll(addPrimitivesCommand.getParticipatingPrimitives());
+        prims.addAll(unmatchedObjects);
+        return prims;
     }
 
     @Override

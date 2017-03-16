@@ -10,7 +10,11 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -18,18 +22,30 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.ParallelGroup;
+import javax.swing.GroupLayout.SequentialGroup;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.LayoutStyle;
+import javax.swing.UIManager;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.ExpertToggleAction;
 import org.openstreetmap.josm.actions.JosmAction;
+import org.openstreetmap.josm.data.SelectionChangedListener;
+import org.openstreetmap.josm.data.osm.AbstractPrimitive;
+import org.openstreetmap.josm.data.osm.AbstractPrimitive.KeyValueVisitor;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
@@ -37,8 +53,12 @@ import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.ExtendedDialog;
 import org.openstreetmap.josm.gui.layer.Layer;
-import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.layer.LayerManager.LayerRemoveEvent;
+import org.openstreetmap.josm.gui.layer.MainLayerManager;
+import org.openstreetmap.josm.gui.layer.MainLayerManager.ActiveLayerChangeEvent;
+import org.openstreetmap.josm.gui.layer.OsmDataLayer;
+import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionItemPriority;
+import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
 import org.openstreetmap.josm.plugins.conflation.SimpleMatchSettings;
 import org.openstreetmap.josm.tools.ImageProvider;
 
@@ -63,6 +83,17 @@ public class SettingsDialog extends ExtendedDialog {
     private AdvancedMatchFinderPanel advancedMatchFinderPanel;
     private ProgrammingMatchFinderPanel programmingMatchFinderPanel;
     private Box selectedMatchFinderBox;
+    private JCheckBox replaceGeometryCheckBox;
+    private JCheckBox mergeTagsCheckBox;
+    private JCheckBox mergeAllCheckBox;
+    private DefaultPromptTextField mergeTagsField;
+    private JCheckBox overwriteTagsCheckbox; // may be null
+    private DefaultPromptTextField overwriteTagsField; // may be null
+    private AutoCompletionList referenceTagsAutoCompletionList = new AutoCompletionList();
+
+    private static final Font italicLabelFont = UIManager.getFont("Label.font").deriveFont(Font.ITALIC);
+    private static final Font plainLabelFont = UIManager.getFont("Label.font").deriveFont(Font.PLAIN);
+    private static final String UNSELECTED_LAYER_NAME = tr("<Please select data>");
 
     List<OsmPrimitive> subjectSelection = null;
     List<OsmPrimitive> referenceSelection = null;
@@ -81,8 +112,10 @@ public class SettingsDialog extends ExtendedDialog {
         referenceSelection = new ArrayList<>();
         subjectSelection = new ArrayList<>();
         initComponents();
+        restoreFromPreferences();
+        initListeners();
+        update();
     }
-
 
     /**
      * Build GUI components
@@ -91,15 +124,51 @@ public class SettingsDialog extends ExtendedDialog {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.PAGE_AXIS));
         pnl.setAlignmentX(LEFT_ALIGNMENT);
-        pnl.add(createLayersPanel());
+        pnl.add(createDataLayersPanel());
         pnl.add(createMatchFinderBox());
+        pnl.add(createMergingPanel());
         setContent(pnl);
         setupDialog();
     }
 
-    public JPanel createLayersPanel() {
-        JPanel panel = new JPanel();
+    private void initListeners() {
+        final SelectionChangedListener selectionChangeListener = new SelectionChangedListener() {
+            @Override
+            public void selectionChanged(Collection<? extends OsmPrimitive> newSelection) {
+                updateFreezeButtons(!newSelection.isEmpty());
+            }
+        };
+        final MainLayerManager.ActiveLayerChangeListener layerChangeListener = new MainLayerManager.ActiveLayerChangeListener() {
+            @Override
+            public void activeOrEditLayerChanged(ActiveLayerChangeEvent e) {
+                updateFreezeButtons();
+            }
 
+        };
+        this.addComponentListener(new ComponentAdapter() {
+            private boolean listenersAdded = false;
+            public void componentHidden(ComponentEvent e) {
+                if (listenersAdded) {
+                    DataSet.removeSelectionListener(selectionChangeListener);
+                    Main.getLayerManager().removeActiveLayerChangeListener(layerChangeListener);
+                    listenersAdded = false;
+                }
+            }
+
+            public void componentShown(ComponentEvent e) {
+                if (!listenersAdded) {
+                    DataSet.addSelectionListener(selectionChangeListener);
+                    Main.getLayerManager().addActiveLayerChangeListener(layerChangeListener);
+                    listenersAdded = true;
+                }
+                updateFreezeButtons();
+            }
+        });
+    }
+
+    public JPanel createDataLayersPanel() {
+        JPanel panel = new JPanel();
+        //panel.setBorder(createLightTitleBorder(tr("Data")));
         JLabel referenceLabel = new JLabel(tr("Reference:"));
         JLabel subjectLabel = new JLabel(tr("Subject:"));
         JLabel layerLabel = new JLabel(tr("Layer"));
@@ -116,22 +185,23 @@ public class SettingsDialog extends ExtendedDialog {
         nbSubjectNodesLabel = new JLabel("0");
         nbSubjectWaysLabel = new JLabel("0");
         nbSubjectRelationsLabel = new JLabel("0");
-        referenceLayerLabel = new JLabel(tr("?"));
-        subjectLayerLabel = new JLabel(tr("?"));
+        referenceLayerLabel = new JLabel();
+        subjectLayerLabel = new JLabel();
+        referenceLayerLabel.setOpaque(true);
+        subjectLayerLabel.setOpaque(true);
         JLabel empty1 = new JLabel();
         JLabel empty2 = new JLabel();
         JLabel empty3 = new JLabel();
 
-        Font light = new Font(referenceLabel.getFont().getName(), Font.PLAIN, referenceLabel.getFont().getSize());
-        nodesLabel.setFont(light);
-        waysLabel.setFont(light);
-        relationsLabel.setFont(light);
-        nbReferenceNodesLabel.setFont(light);
-        nbReferenceWaysLabel.setFont(light);
-        nbReferenceRelationsLabel.setFont(light);
-        nbSubjectNodesLabel.setFont(light);
-        nbSubjectWaysLabel.setFont(light);
-        nbSubjectRelationsLabel.setFont(light);
+        nodesLabel.setFont(italicLabelFont);
+        waysLabel.setFont(italicLabelFont);
+        relationsLabel.setFont(italicLabelFont);
+        nbReferenceNodesLabel.setFont(italicLabelFont);
+        nbReferenceWaysLabel.setFont(italicLabelFont);
+        nbReferenceRelationsLabel.setFont(italicLabelFont);
+        nbSubjectNodesLabel.setFont(italicLabelFont);
+        nbSubjectWaysLabel.setFont(italicLabelFont);
+        nbSubjectRelationsLabel.setFont(italicLabelFont);
 
         layerLabel.setBorder(new MatteBorder(0, 0, 2, 0, Color.DARK_GRAY));;
 
@@ -157,7 +227,7 @@ public class SettingsDialog extends ExtendedDialog {
                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(layerLabel)
                         .addComponent(referenceLayerLabel, 200, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE)
-                        .addComponent(subjectLayerLabel))
+                        .addComponent(subjectLayerLabel, 200, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE))
                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 30, 30)
                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(nodesLabel)
@@ -207,8 +277,8 @@ public class SettingsDialog extends ExtendedDialog {
     }
 
     private Box createMatchFinderBox() {
-        simpleMatchFinderPanel = new SimpleMatchFinderPanel();
-        advancedMatchFinderPanel = new AdvancedMatchFinderPanel();
+        simpleMatchFinderPanel = new SimpleMatchFinderPanel(referenceTagsAutoCompletionList);
+        advancedMatchFinderPanel = new AdvancedMatchFinderPanel(referenceTagsAutoCompletionList);
         if (ExpertToggleAction.isExpert()) {
             programmingMatchFinderPanel = new ProgrammingMatchFinderPanel();
         }
@@ -216,10 +286,9 @@ public class SettingsDialog extends ExtendedDialog {
         JRadioButton simpleRadioButton = new JRadioButton(tr("Simple"));
         JRadioButton advancedRadioButton = new JRadioButton(tr("Advanced"));
         JRadioButton programmimgRadioButton = new JRadioButton(tr("Programming"));
-        Font light = new Font(simpleRadioButton.getFont().getName(), Font.PLAIN, simpleRadioButton.getFont().getSize());
-        simpleRadioButton.setFont(light);
-        advancedRadioButton.setFont(light);
-        programmimgRadioButton.setFont(light);
+        simpleRadioButton.setFont(plainLabelFont);
+        advancedRadioButton.setFont(plainLabelFont);
+        programmimgRadioButton.setFont(plainLabelFont);
         ButtonGroup complexitySelectionBGroup = new ButtonGroup();
         complexitySelectionBGroup.add(simpleRadioButton);
         complexitySelectionBGroup.add(advancedRadioButton);
@@ -240,18 +309,22 @@ public class SettingsDialog extends ExtendedDialog {
         ActionListener modeChangedLiseter = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent event) {
-                selectedMatchFinderBox.remove(0);
+                Component componentToSelect = null;
                 if (event.getSource() == simpleRadioButton) {
-                    selectedMatchFinderBox.add(simpleMatchFinderPanel);
-                    simpleMatchFinderPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    componentToSelect = simpleMatchFinderPanel;
                 } else if (event.getSource() == advancedRadioButton) {
-                    selectedMatchFinderBox.add(advancedMatchFinderPanel);
+                    componentToSelect = advancedMatchFinderPanel;
                 } else if (event.getSource() == programmimgRadioButton) {
-                    selectedMatchFinderBox.add(programmingMatchFinderPanel);
+                    componentToSelect = programmingMatchFinderPanel;
                 }
-                selectedMatchFinderBox.revalidate();
-                SettingsDialog.this.pack();
-                selectedMatchFinderBox.repaint();
+                Component currentComponent = (selectedMatchFinderBox.getComponentCount() > 0) ? selectedMatchFinderBox.getComponent(0) : null;
+                if ((componentToSelect != currentComponent) && (componentToSelect != null)) {
+                    selectedMatchFinderBox.remove(0);
+                    selectedMatchFinderBox.add(componentToSelect);
+                    selectedMatchFinderBox.revalidate();
+                    SettingsDialog.this.pack();
+                    selectedMatchFinderBox.repaint();
+                }
             }
         };
         simpleRadioButton.addActionListener(modeChangedLiseter);
@@ -259,6 +332,7 @@ public class SettingsDialog extends ExtendedDialog {
         programmimgRadioButton.addActionListener(modeChangedLiseter);
 
         Box box = Box.createVerticalBox();
+        box.setBorder(createLightTitleBorder(tr("Matching")));
         box.add(complexitySelectionBox);
         box.add(Box.createRigidArea(new Dimension(1, 5)));
         box.add(selectedMatchFinderBox);
@@ -266,6 +340,98 @@ public class SettingsDialog extends ExtendedDialog {
         return box;
     }
 
+    private JPanel createMergingPanel() {
+        JPanel panel = new JPanel();
+        panel.setBorder(createLightTitleBorder(tr("Merging")));
+        replaceGeometryCheckBox = new JCheckBox(tr("Replace Geometry"));
+        mergeTagsCheckBox = new JCheckBox(tr("Merge Tags"));
+        mergeAllCheckBox = new JCheckBox(tr("All"));
+        mergeTagsField = new DefaultPromptTextField(20, "");
+        mergeTagsField.setToolTipText(tr("List of tags to merge"));
+        mergeTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
+        if (ExpertToggleAction.isExpert()) {
+            overwriteTagsCheckbox = new JCheckBox(tr("Overwrite tags without confirmation"));
+            overwriteTagsField = new DefaultPromptTextField(20, tr("none"));
+            overwriteTagsField.setToolTipText(tr("List of tags to overwrite without confirmation"));
+            overwriteTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
+            overwriteTagsCheckbox.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    overwriteTagsField.setEnabled(overwriteTagsCheckbox.isSelected());
+                }
+            });
+        }
+        mergeTagsCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mergeAllCheckBox.setEnabled(mergeTagsCheckBox.isSelected());
+                mergeTagsField.setEnabled(mergeTagsCheckBox.isSelected());
+                if (mergeTagsCheckBox.isSelected()) {
+                    mergeTagsField.setText("");
+                    mergeAllCheckBox.setSelected(true);
+                }
+            } });
+        mergeAllCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (mergeAllCheckBox.isSelected()) {
+                    mergeTagsField.setText("");
+                }
+            }
+        });
+        mergeTagsField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+            }
+        });
+
+        GroupLayout layout = new GroupLayout(panel);
+        panel.setLayout(layout);
+        ParallelGroup horizonatGroup = layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addComponent(replaceGeometryCheckBox)
+                .addGroup(layout.createSequentialGroup()
+                        .addComponent(mergeTagsCheckBox)
+                        .addComponent(mergeAllCheckBox)
+                        .addComponent(mergeTagsField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE));
+        SequentialGroup verticalGroup = layout.createSequentialGroup()
+                .addComponent(replaceGeometryCheckBox)
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(mergeTagsCheckBox)
+                    .addComponent(mergeAllCheckBox)
+                    .addComponent(mergeTagsField));
+        if (ExpertToggleAction.isExpert()) {
+            horizonatGroup.addGroup(layout.createSequentialGroup()
+                    .addComponent(overwriteTagsCheckbox)
+                    .addComponent(overwriteTagsField,
+                            GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE));
+            verticalGroup.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                    .addComponent(overwriteTagsCheckbox)
+                    .addComponent(overwriteTagsField));
+        }
+        layout.setHorizontalGroup(horizonatGroup);
+        layout.setVerticalGroup(verticalGroup);
+        return panel;
+    }
+
+    private Border createLightTitleBorder(String title) {
+        TitledBorder tileBorder = BorderFactory.createTitledBorder(title);
+        tileBorder.setTitleFont(italicLabelFont);
+        Border emptyBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
+        return new CompoundBorder(tileBorder, emptyBorder);
+    }
 
     /**
      * Matches are actually generated in windowClosed event in ConflationToggleDialog
@@ -289,30 +455,31 @@ public class SettingsDialog extends ExtendedDialog {
      */
     public SimpleMatchSettings getSettings() {
         SimpleMatchSettings settings = new SimpleMatchSettings();
-        settings.setReferenceDataSet(referenceDataSet);
-        settings.setReferenceLayer(referenceLayer);
-        settings.setReferenceSelection(referenceSelection);
-        settings.setSubjectDataSet(subjectDataSet);
-        settings.setSubjectLayer(subjectLayer);
-        settings.setSubjectSelection(subjectSelection);
-        settings.setMatchFinder(getSelectedMatchFinderPanel().getMatchFinder());
-        System.out.println(settings.getMatchFinder());
+        settings.referenceDataSet = referenceDataSet;
+        settings.referenceLayer = referenceLayer;
+        settings.referenceSelection = referenceSelection;
+        settings.subjectDataSet = subjectDataSet;
+        settings.subjectLayer = subjectLayer;
+        settings.subjectSelection = subjectSelection;
+        settings.matchFinder = getSelectedMatchFinderPanel().getMatchFinder();
+        settings.isReplacingGeometry = replaceGeometryCheckBox.isSelected();
+        if (mergeTagsCheckBox.isSelected()) {
+            List<String> tagList = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText());
+            if (mergeAllCheckBox.isSelected() || tagList.isEmpty()) {
+                settings.mergeTags = SimpleMatchSettings.ALL;
+            } else {
+                settings.mergeTags = tagList;
+            }
+        } else {
+            settings.mergeTags = new ArrayList<>(0);
+        }
+        if ((overwriteTagsField != null) && (overwriteTagsCheckbox != null) && overwriteTagsCheckbox.isSelected()) {
+            settings.overwriteTags = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(overwriteTagsField.getText());
+        } else {
+            settings.overwriteTags = new ArrayList<>(0);
+        }
         return settings;
     }
-
-    //    /**
-    //     * @param settings the settings to set
-    //     */
-    //    public void setSettings(SimpleMatchSettings settings) {
-    //        referenceDataSet = settings.getReferenceDataSet();
-    //        referenceLayer = settings.getReferenceLayer();
-    //        referenceSelection = settings.getReferenceSelection();
-    //        subjectDataSet = settings.getSubjectDataSet();
-    //        subjectLayer = settings.getSubjectLayer();
-    //        subjectSelection = settings.getSubjectSelection();
-    //        update();
-    //        //matchFinderPanel.matchFinder = settings.getMatchFinder();
-    //    }
 
     private MatchFinderPanel getSelectedMatchFinderPanel() {
         return (MatchFinderPanel) selectedMatchFinderBox.getComponent(0);
@@ -320,9 +487,33 @@ public class SettingsDialog extends ExtendedDialog {
 
     public void savePreferences() {
         simpleMatchFinderPanel.savePreferences();
-        //advancedMatchFinderPanel.savePreferences();
+        advancedMatchFinderPanel.savePreferences();
         if (programmingMatchFinderPanel != null) {
             programmingMatchFinderPanel.savePreferences();
+        }
+        Main.pref.put(getClass().getName() + ".replaceGeometryCheckBox", replaceGeometryCheckBox.isSelected());
+        Main.pref.put(getClass().getName() + ".mergeTagsCheckBox", mergeTagsCheckBox.isSelected());
+        Main.pref.put(getClass().getName() + ".mergeAllCheckBox", mergeAllCheckBox.isSelected());
+        Main.pref.put(getClass().getName() + ".mergeTagsField", mergeTagsField.getText());
+        if (overwriteTagsCheckbox != null) {
+            Main.pref.put(getClass().getName() + ".overwriteTagsCheckbox", overwriteTagsCheckbox.isSelected());
+            Main.pref.put(getClass().getName() + ".overwriteTagsField", overwriteTagsField.getText());
+        }
+    }
+
+    public void restoreFromPreferences() {
+        simpleMatchFinderPanel.restoreFromPreferences();
+        advancedMatchFinderPanel.restoreFromPreferences();
+        if (programmingMatchFinderPanel != null) {
+            programmingMatchFinderPanel.restoreFromPreferences();
+        }
+        replaceGeometryCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".replaceGeometryCheckBox", true));
+        mergeTagsField.setText(Main.pref.get(getClass().getName() + ".mergeTagsField", ""));
+        mergeAllCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".mergeAllCheckBox", true));
+        mergeTagsCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".mergeTagsCheckBox", true));
+        if (overwriteTagsCheckbox != null) {
+            overwriteTagsField.setText(Main.pref.get(getClass().getName() + ".overwriteTagsField", ""));
+            overwriteTagsCheckbox.setSelected(Main.pref.getBoolean(getClass().getName() + ".overwriteTagsCheckbox", false));
         }
     }
 
@@ -433,20 +624,32 @@ public class SettingsDialog extends ExtendedDialog {
                 }
             }
             subjectLayerLabel.setText(subjectLayer.getName());
+            subjectLayerLabel.setOpaque(false);
 
             nbSubjectNodesLabel.setText("" + numNodes);
             nbSubjectWaysLabel.setText("" + numWays);
             nbSubjectRelationsLabel.setText("" + numRelations);
+            restoreSubjectButton.setEnabled(true);
         } else {
-            subjectLayerLabel.setText(tr("?"));
+            subjectLayerLabel.setText(UNSELECTED_LAYER_NAME);
+            subjectLayerLabel.setBackground(Color.YELLOW);
+            subjectLayerLabel.setOpaque(true);
             nbSubjectNodesLabel.setText("0");
             nbSubjectWaysLabel.setText("0");
             nbSubjectRelationsLabel.setText("0");
+            restoreSubjectButton.setEnabled(false);
         }
         numNodes = 0;
         numWays = 0;
         numRelations = 0;
         if (!referenceSelection.isEmpty()) {
+            HashSet<String> referenceKeys = new HashSet<>();
+            KeyValueVisitor referenceKeysVisitor = new KeyValueVisitor() {
+                @Override
+                public void visitKeyValue(AbstractPrimitive primitive, String key, String value) {
+                    referenceKeys.add(key);
+                }
+            };
             for (OsmPrimitive p : referenceSelection) {
                 if (p instanceof Node) {
                     numNodes++;
@@ -455,18 +658,38 @@ public class SettingsDialog extends ExtendedDialog {
                 } else if (p instanceof Relation) {
                     numRelations++;
                 }
+                p.visitKeys(referenceKeysVisitor);
             }
+            referenceKeys.remove(OsmPrimitive.getDiscardableKeys());
+            referenceTagsAutoCompletionList.clear();
+            referenceTagsAutoCompletionList.add(referenceKeys, AutoCompletionItemPriority.IS_IN_DATASET);
             referenceLayerLabel.setText(referenceLayer.getName());
+            referenceLayerLabel.setOpaque(false);
             nbReferenceNodesLabel.setText("" + numNodes);
             nbReferenceWaysLabel.setText("" + numWays);
             nbReferenceRelationsLabel.setText("" + numRelations);
+            restoreReferenceButton.setEnabled(true);
         } else {
-            referenceLayerLabel.setText(tr("?"));
+            referenceTagsAutoCompletionList.clear();
+            referenceLayerLabel.setText(UNSELECTED_LAYER_NAME);
+            referenceLayerLabel.setBackground(Color.YELLOW);
+            referenceLayerLabel.setOpaque(true);
             nbReferenceNodesLabel.setText("0");
             nbReferenceWaysLabel.setText("0");
             nbReferenceRelationsLabel.setText("0");
+            restoreReferenceButton.setEnabled(false);
         }
-        //FIXME: properly update match finder settings
+        updateFreezeButtons();
+    }
+
+    public void updateFreezeButtons() {
+        DataSet dataSet = Main.getLayerManager().getEditDataSet();
+        updateFreezeButtons((dataSet == null) ? false : !dataSet.getSelected().isEmpty());
+    }
+
+    public void updateFreezeButtons(boolean enabled) {
+        freezeReferenceButton.setEnabled(enabled);
+        freezeSubjectButton.setEnabled(enabled);
     }
 
     /**

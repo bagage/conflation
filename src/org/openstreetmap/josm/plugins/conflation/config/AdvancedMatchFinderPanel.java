@@ -25,6 +25,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
+import org.openstreetmap.josm.gui.widgets.JosmTextField;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.ExactValueMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.LevenshteinDistanceValueMatcher;
@@ -138,15 +140,17 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
             3, MyValidatingTextField.NON_NEGATIVE_DOUBLE_VALIDATOR, "0");
     private JLabel exactTagsLabel = new JLabel();
     private JLabel levenshteinTagsLabel = new JLabel();
-    private JTextField exactTagsField = new JTextField(15);
-    private JTextField levenshteinTagsField = new JTextField(15);
+    private DefaultPromptTextField exactTagsField = new DefaultPromptTextField(15, tr("none"));
+    private DefaultPromptTextField levenshteinTagsField = new DefaultPromptTextField(15, tr("none"));
 
-    public AdvancedMatchFinderPanel() {
+    public AdvancedMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
         super();
         filterByAreaTextArea.setFont(angleLabel.getFont().deriveFont(Font.ITALIC));
         unioningTextArea.setFont(angleLabel.getFont().deriveFont(Font.ITALIC));
         handleLabelClicks();
         jbInit();
+        exactTagsField.setAutoCompletionList(referenceKeysAutocompletionList);
+        levenshteinTagsField.setAutoCompletionList(referenceKeysAutocompletionList);
         restoreFromPreferences();
     }
 
@@ -279,6 +283,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         centroidPanel.setLayout(centroidLayout);
         centroidBelow.setText(" < ");
         centroidBelow.setToolTipText(tr("below"));
+        centroidThresholdField.setToolTipText(tr("Maximum Distance"));
         hausdorffLabel.setText(tr("Hausdorff Distance (Centroids Aligned)"));
         symDiffLabel.setText(tr("Symmetric Difference"));
         symDiffCentroidsAlignedLabel.setText(tr(

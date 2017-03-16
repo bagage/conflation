@@ -40,8 +40,8 @@ public final class MatchesComputation {
 
         // create Features and collections from primitive selections
         HashSet<OsmPrimitive> allPrimitives = new HashSet<>();
-        HashSet<OsmPrimitive> refPrimitives = new HashSet<>(settings.getReferenceSelection());
-        HashSet<OsmPrimitive> subPrimitives = new HashSet<>(settings.getSubjectSelection());
+        HashSet<OsmPrimitive> refPrimitives = new HashSet<>(settings.referenceSelection);
+        HashSet<OsmPrimitive> subPrimitives = new HashSet<>(settings.subjectSelection);
         allPrimitives.addAll(refPrimitives);
         allPrimitives.addAll(subPrimitives);
         FeatureCollection allFeatures = createFeatureCollection(allPrimitives);
@@ -71,7 +71,7 @@ public final class MatchesComputation {
         //     envelope.getMaxY());
 
         // build matcher
-        FCMatchFinder finder = settings.getMatchFinder();
+        FCMatchFinder finder = settings.matchFinder;
 
         // FIXME: ignore/filter duplicate objects (i.e. same object in both sets)
         // FIXME: fix match functions to work on point/linestring features as well

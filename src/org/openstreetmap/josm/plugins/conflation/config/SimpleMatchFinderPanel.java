@@ -3,6 +3,7 @@ package org.openstreetmap.josm.plugins.conflation.config;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,10 +12,10 @@ import java.util.stream.Stream;
 import javax.swing.GroupLayout;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JTextField;
 import javax.swing.LayoutStyle;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.LevenshteinDistanceValueMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.OsmNormalizeRule;
@@ -47,13 +48,16 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
     private final MyValidatingTextField threshDistanceField = new MyValidatingTextField(
             "" + DEFAULT_DISTANCE_THRESHOLD, 4, MyValidatingTextField.NON_NEGATIVE_DOUBLE_VALIDATOR, "0");
     private final JLabel tagsLabel = new JLabel(tr("Tags"));
-    private final JTextField tagsField = new JTextField(15);
+    private final DefaultPromptTextField tagsField = new DefaultPromptTextField(20, tr("none"));
 
-    public SimpleMatchFinderPanel() {
+    public SimpleMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
         super();
         distanceComboBox.setSelectedIndex(1);
-        threshDistanceField.setToolTipText(tr("Maximum distance"));
-        tagsField.setToolTipText(tr("List of tags to match"));
+        threshDistanceField.setToolTipText(tr("Maximum Distance"));
+        tagsField.setToolTipText(tr("List of tags to match (default: none)"));
+        methodCombeBox.setFont(methodCombeBox.getFont().deriveFont(Font.PLAIN));
+        distanceComboBox.setFont(distanceComboBox.getFont().deriveFont(Font.PLAIN));
+        tagsField.setAutoCompletionList(referenceKeysAutocompletionList);
         GroupLayout layout = new GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -79,11 +83,13 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                         .addComponent(methodLabel)
                         .addComponent(methodCombeBox))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 3, 3)
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                         .addComponent(distanceLabel)
                         .addComponent(distanceComboBox)
                         .addComponent(threshDistanceLabel)
                         .addComponent(threshDistanceField))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 3, 3)
                     .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                         .addComponent(tagsLabel)
                         .addComponent(tagsField))

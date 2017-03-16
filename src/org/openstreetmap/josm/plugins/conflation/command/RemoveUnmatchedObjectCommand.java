@@ -1,0 +1,55 @@
+// License: GPL. For details, see LICENSE file.
+// Copyright 2012 by Josh Doe and others.
+package org.openstreetmap.josm.plugins.conflation.command;
+
+import static org.openstreetmap.josm.tools.I18n.marktr;
+import static org.openstreetmap.josm.tools.I18n.tr;
+
+import java.util.Collection;
+
+import javax.swing.Icon;
+
+import org.openstreetmap.josm.command.Command;
+import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.plugins.conflation.UnmatchedObjectListModel;
+import org.openstreetmap.josm.tools.ImageProvider;
+
+public class RemoveUnmatchedObjectCommand extends Command {
+    private final UnmatchedObjectListModel model;
+    private final Collection<OsmPrimitive> objects;
+
+    public RemoveUnmatchedObjectCommand(UnmatchedObjectListModel model,
+            Collection<OsmPrimitive> objects) {
+        this.model = model;
+        this.objects = objects;
+    }
+
+    @Override
+    public boolean executeCommand() {
+        return model.removeAll(objects);
+    }
+
+    @Override
+    public void undoCommand() {
+        model.addAll(objects);
+    }
+
+    @Override
+    public void fillModifiedData(Collection<OsmPrimitive> modified, Collection<OsmPrimitive> deleted, Collection<OsmPrimitive> added) {
+    }
+
+    @Override
+    public String getDescriptionText() {
+        return tr(marktr("Remove {0} unmatched objects"), objects.size());
+    }
+
+    @Override
+    public Icon getDescriptionIcon() {
+        return ImageProvider.get("dialogs", "delete");
+    }
+
+    @Override
+    public Collection<OsmPrimitive> getParticipatingPrimitives() {
+        return objects;
+    }
+}
