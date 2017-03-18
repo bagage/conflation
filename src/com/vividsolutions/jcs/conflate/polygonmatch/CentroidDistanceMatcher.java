@@ -15,6 +15,7 @@ public class CentroidDistanceMatcher extends AbstractDistanceMatcher {
         setMaxDistance(maxDistance);
     }
 
+    @Override
     protected double distance(Geometry target, Geometry candidate) {
         return target.getCentroid().distance(
             candidate.getCentroid());

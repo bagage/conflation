@@ -42,10 +42,12 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
             "\t\t\tBasic(\n" +
             "\t\t\t\tChain(\n" +
             "\t\t\t\t\tWindow( 50 ),\n" +
+            "\t\t\t\t\tStandardDistance( 50 ),\n" +
             "\t\t\t\t\tCentroidDistance( 50 ),\n" +
             "\t\t\t\t\tAttribute( 'exact_tag', Exact, NONE ),\n" +
             "\t\t\t\t\tWeighted(\n" +
-            "\t\t\t\t\t\t10, CentroidDistance( 0 ),\n" +
+            "\t\t\t\t\t\t10, StandardDistance( 50 ),\n" +
+            "\t\t\t\t\t\t10, CentroidDistance( 50 ),\n" +
             "\t\t\t\t\t\t10, CentroidAligner( HausdorffDistance( 0 ) ),\n" +
             "\t\t\t\t\t\t10, SymDiff,\n" +
             "\t\t\t\t\t\t10, CentroidAligner( SymDiff ),\n" +
@@ -94,6 +96,7 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
         editorPanel.getTextArea().setText(Main.pref.get(getClass().getName() + ".expression", SIMPLE_EXAMPLE));
     }
 
+    @Override
     public void savePreferences() {
         Main.pref.put(getClass().getName() + ".expression", editorPanel.getTextArea().getText());
     }
@@ -197,6 +200,11 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
                     "IdenticalFilter",
                     "Filters out matches where features are identical.",
                     new String[] {}),
+            new InstanceConstructor(
+                    org.openstreetmap.josm.plugins.conflation.matcher.StandardDistanceMatcher.class,
+                    "StandardDistance",
+                    "Standard Distance (i.e. the minimum) between the two geometries.",
+                    new String[] {"maximum distance, if 0 then score will be relative to the combined envelope diagonale."}),
             new InstanceConstructor(
                     com.vividsolutions.jcs.conflate.polygonmatch.MinScoreMatcher.class,
                     "MinScore",

@@ -22,15 +22,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
-import org.openstreetmap.josm.gui.widgets.JosmTextField;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.ExactValueMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.LevenshteinDistanceValueMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.OsmNormalizeRule;
+import org.openstreetmap.josm.plugins.conflation.matcher.StandardDistanceMatcher;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.AngleHistogramMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.AreaFilterFCMatchFinder;
@@ -97,6 +96,15 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
                     new MyValidatingTextField.GreaterThanValidator(1.5)
                 }), "2");
     private JLabel weightLabel = new JLabel();
+    private JCheckBox stdDistanceCheckBox = new JCheckBox("", true);
+    private MyValidatingTextField stdDistanceWeightField = new MyValidatingTextField("10",
+            3, MyValidatingTextField.NON_NEGATIVE_DOUBLE_VALIDATOR, "0");
+    private JPanel stdDistancePanel = new JPanel();
+    private GridBagLayout stdDistanceLayout = new GridBagLayout();
+    private JLabel stdDistanceLabel = new JLabel();
+    private JLabel stdDistanceBelow = new JLabel();
+    private MyValidatingTextField stdDistanceThresholdField = new MyValidatingTextField("50",
+            4, MyValidatingTextField.NON_NEGATIVE_DOUBLE_VALIDATOR, "");
     private JCheckBox centroidCheckBox = new JCheckBox("", true);
     private MyValidatingTextField centroidDistanceWeightField = new MyValidatingTextField("10",
             3, MyValidatingTextField.NON_NEGATIVE_DOUBLE_VALIDATOR, "0");
@@ -260,6 +268,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
 
     private void handleClicks(JLabel label, final JCheckBox checkBox) {
         label.addMouseListener(new MouseAdapter() {
+                @Override
                 public void mouseClicked(MouseEvent e) {
                     checkBox.doClick();
                 }
@@ -279,6 +288,11 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         unionLabel1.setText(tr("Union up to "));
         unionLabel2.setText(tr(" adjacent Reference features"));
         weightLabel.setText(tr("Weight"));
+        stdDistanceLabel.setText(tr("Standard Distance"));
+        stdDistancePanel.setLayout(stdDistanceLayout);
+        stdDistanceBelow.setText(" < ");
+        stdDistanceBelow.setToolTipText(tr("below"));
+        stdDistanceThresholdField.setToolTipText(tr("Maximum Distance"));
         centroidLabel.setText(tr("Centroid Distance"));
         centroidPanel.setLayout(centroidLayout);
         centroidBelow.setText(" < ");
@@ -393,94 +407,106 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
             new GridBagConstraints(1, 10, 2, 1, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                 new Insets(10, 4, 4, 4), 0, 0));
-        matchingTab.add(centroidCheckBox,
+        matchingTab.add(stdDistanceCheckBox,
             new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(centroidDistanceWeightField,
+        matchingTab.add(stdDistanceWeightField,
             new GridBagConstraints(3, 1, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(centroidPanel,
+        matchingTab.add(stdDistancePanel,
             new GridBagConstraints(4, 1, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(hausdorffCheckBox,
+        matchingTab.add(centroidCheckBox,
             new GridBagConstraints(2, 2, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(hausdorffDistanceWeightField,
+        matchingTab.add(centroidDistanceWeightField,
             new GridBagConstraints(3, 2, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(hausdorffLabel,
+        matchingTab.add(centroidPanel,
             new GridBagConstraints(4, 2, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffCheckBox,
+        matchingTab.add(hausdorffCheckBox,
             new GridBagConstraints(2, 3, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffWeightField,
+        matchingTab.add(hausdorffDistanceWeightField,
             new GridBagConstraints(3, 3, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffLabel,
+        matchingTab.add(hausdorffLabel,
             new GridBagConstraints(4, 3, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffCentroidsAlignedCheckBox,
+        matchingTab.add(symDiffCheckBox,
             new GridBagConstraints(2, 4, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffCentroidsAlignedWeightField,
+        matchingTab.add(symDiffWeightField,
             new GridBagConstraints(3, 4, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(symDiffCentroidsAlignedLabel,
+        matchingTab.add(symDiffLabel,
             new GridBagConstraints(4, 4, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(compactnessCheckBox,
+        matchingTab.add(symDiffCentroidsAlignedCheckBox,
             new GridBagConstraints(2, 5, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(compactnessWeightField,
+        matchingTab.add(symDiffCentroidsAlignedWeightField,
             new GridBagConstraints(3, 5, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(compactnessLabel,
+        matchingTab.add(symDiffCentroidsAlignedLabel,
             new GridBagConstraints(4, 5, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(angleCheckBox,
+        matchingTab.add(compactnessCheckBox,
             new GridBagConstraints(2, 6, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(angleWeightField,
+        matchingTab.add(compactnessWeightField,
             new GridBagConstraints(3, 6, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(anglePanel,
+        matchingTab.add(compactnessLabel,
             new GridBagConstraints(4, 6, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(levenshteinTagsCheckBox,
+        matchingTab.add(angleCheckBox,
             new GridBagConstraints(2, 7, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(levenshteinTagsWeightField,
+        matchingTab.add(angleWeightField,
             new GridBagConstraints(3, 7, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-        matchingTab.add(levenshteinTagsPanel,
+        matchingTab.add(anglePanel,
             new GridBagConstraints(4, 7, 1, 1, 0.0, 0.0,
                 GridBagConstraints.WEST, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
+        matchingTab.add(levenshteinTagsCheckBox,
+            new GridBagConstraints(2, 8, 1, 1, 0.0, 0.0,
+                GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0), 0, 0));
+        matchingTab.add(levenshteinTagsWeightField,
+            new GridBagConstraints(3, 8, 1, 1, 0.0, 0.0,
+                GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0), 0, 0));
+        matchingTab.add(levenshteinTagsPanel,
+            new GridBagConstraints(4, 8, 1, 1, 0.0, 0.0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0), 0, 0));
         matchingTab.add(exactTagsPanel,
-                new GridBagConstraints(2, 8, 3, 1, 0.0, 0.0,
-                    GridBagConstraints.WEST, GridBagConstraints.NONE,
-                    new Insets(0, 0, 0, 0), 0, 0));
+            new GridBagConstraints(2, 9, 3, 1, 0.0, 0.0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0), 0, 0));
         anglePanel.add(angleLabel,
             new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
@@ -493,6 +519,18 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
             new GridBagConstraints(50, 50, 1, 1, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                 new Insets(0, 0, 0, 0), 0, 0));
+        stdDistancePanel.add(stdDistanceLabel,
+                new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                    new Insets(0, 0, 0, 0), 0, 0));
+        stdDistancePanel.add(stdDistanceBelow,
+                new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                    new Insets(0, 0, 0, 0), 0, 0));
+        stdDistancePanel.add(stdDistanceThresholdField,
+                new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                    new Insets(0, 0, 0, 0), 0, 0));
         centroidPanel.add(centroidLabel,
                 new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.NONE,
@@ -529,40 +567,49 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         if (getFilterByWindowCheckBox().isSelected()) {
             chainArgs.add(new WindowFilter(filterByWindowField.getDouble()));
         }
+        if (stdDistanceCheckBox.isSelected()) {
+            double max = stdDistanceThresholdField.getDouble();
+            FeatureMatcher matcher = new StandardDistanceMatcher(max);
+            if (max > 0) {
+                chainArgs.add(matcher);
+            }
+            weightedArgs.add(Double.valueOf(stdDistanceWeightField.getDouble()));
+            weightedArgs.add(matcher);
+        }
         if (getCentroidCheckBox().isSelected()) {
             double max = centroidThresholdField.getDouble();
             FeatureMatcher matcher = new CentroidDistanceMatcher(max);
             if (max > 0) {
                 chainArgs.add(matcher);
             }
-            weightedArgs.add(new Double(getCentroidDistanceWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getCentroidDistanceWeightField().getDouble()));
             weightedArgs.add(matcher);
         }
         if (getHausdorffCheckBox().isSelected()) {
-            weightedArgs.add(new Double(getHausdorffDistanceWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getHausdorffDistanceWeightField().getDouble()));
             weightedArgs.add(new CentroidAligner(new HausdorffDistanceMatcher()));
         }
         if (getSymDiffCheckBox().isSelected()) {
-            weightedArgs.add(new Double(getSymDiffWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getSymDiffWeightField().getDouble()));
             weightedArgs.add(new SymDiffMatcher());
         }
         if (getSymDiffCentroidsAlignedCheckBox().isSelected()) {
-            weightedArgs.add(new Double(getSymDiffCentroidsAlignedWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getSymDiffCentroidsAlignedWeightField().getDouble()));
             weightedArgs.add(new CentroidAligner(new SymDiffMatcher()));
         }
         if (getCompactnessCheckBox().isSelected()) {
-            weightedArgs.add(new Double(getCompactnessWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getCompactnessWeightField().getDouble()));
             weightedArgs.add(new CompactnessMatcher());
         }
         if (getAngleCheckBox().isSelected()) {
-            weightedArgs.add(new Double(getAngleWeightField().getDouble()));
+            weightedArgs.add(Double.valueOf(getAngleWeightField().getDouble()));
             weightedArgs.add(new AngleHistogramMatcher(getAngleBinField().getInteger()));
         }
         if (levenshteinTagsCheckBox.isSelected()) {
             double weight = levenshteinTagsWeightField.getDouble();
             List<String> tags = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(levenshteinTagsField.getText());
             for (String tag: tags) {
-                weightedArgs.add(new Double(weight / tags.size()));
+                weightedArgs.add(Double.valueOf(weight / tags.size()));
                 weightedArgs.add(new AttributeMatcher(tag,
                         LevenshteinDistanceValueMatcher.INSTANCE, OsmNormalizeRule.get(tag)));
             }
@@ -601,6 +648,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         Main.pref.put(getClass().getName() + ".filterByAreaCheckBox", filterByAreaCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".filterByWindowCheckBox", filterByWindowCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".unionCheckBox", unionCheckBox.isSelected());
+        Main.pref.put(getClass().getName() + ".stdDistanceCheckBox", stdDistanceCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".centroidCheckBox", centroidCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".hausdorffCheckBox", hausdorffCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".symDiffCheckBox", symDiffCheckBox.isSelected());
@@ -613,6 +661,8 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         Main.pref.putDouble(getClass().getName() + ".filterByAreaMinField", filterByAreaMinField.getDouble());
         Main.pref.putDouble(getClass().getName() + ".filterByAreaMaxField", filterByAreaMaxField.getDouble());
         Main.pref.putDouble(getClass().getName() + ".filterByWindowField", filterByWindowField.getDouble());
+        Main.pref.putDouble(getClass().getName() + ".stdDistanceWeightField", stdDistanceWeightField.getDouble());
+        Main.pref.putDouble(getClass().getName() + ".stdDistanceThresholdField", stdDistanceThresholdField.getDouble());
         Main.pref.putDouble(getClass().getName() + ".centroidDistanceWeightField", centroidDistanceWeightField.getDouble());
         Main.pref.putDouble(getClass().getName() + ".centroidThresholdField", centroidThresholdField.getDouble());
         Main.pref.putDouble(getClass().getName() + ".hausdorffDistanceWeightField", hausdorffDistanceWeightField.getDouble());
@@ -629,6 +679,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         filterByAreaCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".filterByAreaCheckBox", true));
         filterByWindowCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".filterByWindowCheckBox", true));
         unionCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".unionCheckBox", false));
+        stdDistanceCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".stdDistanceCheckBox", true));
         centroidCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".centroidCheckBox", true));
         hausdorffCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".hausdorffCheckBox", true));
         symDiffCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".symDiffCheckBox", true));
@@ -641,6 +692,9 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         filterByAreaMinField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByAreaMinField", 0.0)));
         filterByAreaMaxField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByAreaMaxField", 9E6)));
         filterByWindowField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByWindowField", 50.0)));
+        stdDistanceWeightField.setText("" + Double.max(0.0,
+                Main.pref.getDouble(getClass().getName() + ".stdDistanceWeightField", 10.0)));
+        stdDistanceThresholdField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".stdDistanceThresholdField", 50.0)));
         centroidDistanceWeightField.setText("" + Double.max(0.0,
                 Main.pref.getDouble(getClass().getName() + ".centroidDistanceWeightField", 10.0)));
         centroidThresholdField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".centroidThresholdField", 50.0)));

@@ -87,7 +87,6 @@ public class ConflationToggleDialog extends ToggleDialog
 implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, LayerChangeListener {
 
     public static final String TITLE_PREFIX = tr("Conflation");
-    public static final String PREF_PREFIX = "conflation";
     final JTabbedPane tabbedPane;
     final JTable matchTable;
     final JList<OsmPrimitive> referenceOnlyList;
@@ -560,7 +559,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    class ColorTableCellRenderer extends JLabel implements TableCellRenderer {
+    static class ColorTableCellRenderer extends JLabel implements TableCellRenderer {
 
         private final String columnName;
 

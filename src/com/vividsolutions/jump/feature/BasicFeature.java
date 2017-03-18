@@ -59,6 +59,7 @@ public class BasicFeature extends AbstractBasicFeature {
     /**
      * A low-level accessor that is not normally used. It is called by ViewSchemaPlugIn.
      */
+    @Override
     public void setAttributes(Object[] attributes) {
         this.attributes = attributes;
     }
@@ -69,6 +70,7 @@ public class BasicFeature extends AbstractBasicFeature {
      *@param  attributeIndex  the array index at which to put the new attribute
      *@param  newAttribute    the new attribute
      */
+    @Override
     public void setAttribute(int attributeIndex, Object newAttribute) {
         attributes[attributeIndex] = newAttribute;
     }
@@ -79,6 +81,7 @@ public class BasicFeature extends AbstractBasicFeature {
      *@param  i the index of the attribute to get
      *@return the attribute
      */
+    @Override
     public Object getAttribute(int i) {
         return attributes[i];
         //We used to eat ArrayOutOfBoundsExceptions here. I've removed this behaviour
@@ -88,6 +91,7 @@ public class BasicFeature extends AbstractBasicFeature {
     /**
      * A low-level accessor that is not normally used. It is called by ViewSchemaPlugIn.
      */
+    @Override
     public Object[] getAttributes() {
         return attributes;
     }

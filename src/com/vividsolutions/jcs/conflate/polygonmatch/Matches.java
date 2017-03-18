@@ -167,7 +167,7 @@ public class Matches implements FeatureCollection, Cloneable {
         if (score == 0) {
             return;
         }
-        scores.add(new Double(score));
+        scores.add(Double.valueOf(score));
         dataset.add(feature);
         if (score > topScore) {
             topScore = score;

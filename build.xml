@@ -1,100 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="josm-conflation-plugin" default="dist" basedir=".">
+<project name="conflation" default="dist" basedir=".">
 
-    <property name="ant.build.javac.target" value="1.8"/>
-    <property name="ant.build.javac.source" value="1.8"/>
+    <property file="build.properties" />
 
-    <property name="plugin.build.dir" value="build" />
-    <property name="plugin.src.dir" value="src" />
-    <property name="plugin.dist.dir" value="../../dist" />
-    <property name="plugin.jar" value="${plugin.dist.dir}/conflation.jar" />
-    <property name="josm" location="../../core/dist/josm-custom.jar"/>
-    <property name="jts.plugin.jar" location="${plugin.dist.dir}/jts.jar"/>
-    <property name="utilsplugin2.plugin.jar" location="${plugin.dist.dir}/utilsplugin2.jar"/>
+    <!-- enter the SVN commit message -->
+    <property name="commit.message" value="Conflation"/>
+    <!-- enter the *lowest* JOSM version this plugin is currently compatible with -->
+    <property name="plugin.main.version" value="${josm.required.version}"/>
 
-    <target name="init">
-        <available file="build.properties" property="build.properties.present" />
-        <fail unless="build.properties.present">**
-            ** Property file 'build.properties' doesn't exist.
-            ** Create a copy from 'build.properties.template' and update the properties
-            ** according to your local environment.
-        </fail>
-        <property file="build.properties" />
+    <property name="plugin.author" value="Josh Doe"/>
+    <property name="plugin.class" value="org.openstreetmap.josm.plugins.conflation.ConflationPlugin"/>
+    <property name="plugin.description" value="Tool for conflating data (matching and merging)."/>
+    <property name="plugin.icon" value="images/dialogs/conflation.png"/>
+    <property name="plugin.link" value="https://wiki.openstreetmap.org/wiki/JOSM/Plugins/Conflation"/>
+    <property name="plugin.requires" value="jts;utilsplugin2"/>
+    <property name="plugin.canloadatruntime" value="true"/>
+    <property name="version.entry.commit.revision" value="${plugin.version}"/>
 
-        <path id="compile.path">
-            <pathelement location="${josm}" />
-            <pathelement location="${jts.plugin.jar}"/>
-            <pathelement location="${utilsplugin2.plugin.jar}"/>
-        </path>
+    <!-- ** include targets that all plugins have in common ** -->
+    <import file="../build-common.xml"/>
 
-        <mkdir dir="${plugin.build.dir}" />
-    </target>
+    <fileset id="plugin.requires.jars" dir="${plugin.dist.dir}">
+        <include name="jts.jar"/>
+        <include name="utilsplugin2.jar"/>
+    </fileset>
 
-    <target name="compile" depends="init">
-        <echo message="compiling sources for  ${plugin.jar} ... " />
-        <echo>Classpath includes ${josm}</echo>
-        <echo>Classpath includes ${jts.plugin.jar}</echo>
-        <echo>Classpath includes ${utilsplugin2.plugin.jar}</echo>
-        <javac srcdir="src" classpathref="compile.path" debug="true" destdir="${plugin.build.dir}" includeantruntime="false" encoding="UTF-8">
-            <compilerarg value="-Xlint:deprecation" />
-            <compilerarg value="-Xlint:unchecked" />
-        </javac>
-    </target>
-
-    <target name="dist" depends="clean,init,compile" description="Create the plugin jar">
-        <tstamp>
-            <format property="plugin.build.date" pattern="yyyy-MM-dd hh:mm aa" />
-        </tstamp>
-
-        <copy todir="${plugin.build.dir}/images">
-            <fileset dir="images">
-                <include name="**/*.png" />
-            </fileset>
-        </copy>
-
-        <copy todir="${plugin.build.dir}">
-            <fileset dir=".">
-                <include name="README" />
-                <include name="LICENSE" />
-                <include name="README.*" />
-                <include name="LICENSE.*" />
-            </fileset>
-        </copy>
-
-        <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}" manifestencoding="UTF-8">
-            <manifest>
-                <attribute name="Author" value="Josh Doe" />
-                <attribute name="Plugin-Class" value="org.openstreetmap.josm.plugins.conflation.ConflationPlugin" />
-                <attribute name="Plugin-Date" value="${plugin.build.date}" />
-                <attribute name="Plugin-Description" value="(Warning: Experimental!) Tool for conflating (merging) data." />
-                <attribute name="Plugin-Icon" value="images/dialogs/conflation.png"/>
-                <attribute name="Plugin-Link" value="https://wiki.openstreetmap.org/wiki/JOSM/Plugins/Conflation" />
-                <attribute name="Plugin-Mainversion" value="${josm.required.version}" />
-                <attribute name="Plugin-Requires" value="jts;utilsplugin2"/>
-                <attribute name="Plugin-Version" value="${plugin.version}" />
-            </manifest>
-        </jar>
-    </target>
-
-    <target name="clean" description="Clean the build environment">
-        <delete dir="${plugin.build.dir}" />
-    </target>
-
-    <target name="osm-svn-install" depends="dist">
-        <echo>Installing the plugin in ${local.osm.svn.path}</echo>
-        <copy file="${plugin.jar}" todir="${local.osm.svn.path}" />
-    </target>
-
-    <!-- ************************************************************************************ -->
-    <!-- * Targets for compiling and running tests                                            -->
-    <!-- ************************************************************************************ -->
-
-    <target name="dev-install" depends="dist">
-        <echo>Installing the plugin in ${local.install.path}</echo>
-        <copy file="${plugin.jar}" todir="${local.install.path}" />
-    </target>
-
-    <target name="test"/>
-    <target name="checkstyle"/>
-    <target name="findbugs"/>
 </project>

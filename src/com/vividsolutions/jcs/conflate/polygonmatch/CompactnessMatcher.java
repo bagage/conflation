@@ -50,6 +50,7 @@ public class CompactnessMatcher extends IndependentCandidateMatcher {
    * @return 1 - the difference between the values of the shape
    * characteristic, defined above.
    */
+  @Override
   public double match(Geometry target, Geometry candidate) {
     double score = 1 - Math.abs(characteristic(target)
                               - characteristic(candidate));

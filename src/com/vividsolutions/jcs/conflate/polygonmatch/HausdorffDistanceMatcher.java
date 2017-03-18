@@ -20,6 +20,7 @@ public class HausdorffDistanceMatcher extends AbstractDistanceMatcher {
         setMaxDistance(maxDistance);
     }
 
+    @Override
     protected double distance(Geometry target, Geometry candidate) {
         return new VertexHausdorffDistance(target, candidate).distance();
     }

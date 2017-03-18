@@ -134,7 +134,7 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             unionID++;
             for (Feature targetConstituent : compositeTarget.getFeatures()) {
                 lastTargetConstituents.add(targetConstituent);
-                lastUnionIDs.add(new Integer(unionID));
+                lastUnionIDs.add(Integer.valueOf(unionID));
             }
         }
     }
@@ -173,7 +173,7 @@ public class TargetUnioningFCMatchFinder implements FCMatchFinder {
             }
             compositeTargets.add(match.getTarget());
             candidates.add(match.getCandidate());
-            scores.add(new Double(match.getScore()));
+            scores.add(Double.valueOf(match.getScore()));
             targetConstituentsEncountered.addAll(((CompositeFeature) match.getTarget()).getFeatures());
         }
         Map<Feature, Matches> newMap = new HashMap<>();

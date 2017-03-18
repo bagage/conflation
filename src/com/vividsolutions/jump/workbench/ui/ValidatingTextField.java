@@ -47,6 +47,7 @@ import javax.swing.text.PlainDocument;
  */
 public class ValidatingTextField extends JTextField {
     public static final Validator LONG_VALIDATOR = new ValidatingTextField.Validator() {
+        @Override
         public boolean isValid(String text) {
             try {
                 Long.parseLong(text.trim() + "0");
@@ -62,6 +63,7 @@ public class ValidatingTextField extends JTextField {
      * Prevents the user from entering invalid integer.
      */
     public static final Validator INTEGER_VALIDATOR = new ValidatingTextField.Validator() {
+        @Override
         public boolean isValid(String text) {
             try {
                 //Add "0" so user can type "-" or make it blank [Jon Aquino]
@@ -78,6 +80,7 @@ public class ValidatingTextField extends JTextField {
      * Prevents the user from entering invalid double.
      */
     public static final Validator DOUBLE_VALIDATOR = new ValidatingTextField.Validator() {
+        @Override
         public boolean isValid(String text) {
             try {
                 //Add "0" so user can type "-" or make it blank [Jon Aquino]
@@ -94,6 +97,7 @@ public class ValidatingTextField extends JTextField {
      * Cleaner that does nothing.
      */
     public static Cleaner DUMMY_CLEANER = new Cleaner() {
+        @Override
         public String clean(String text) {
             return text;
         }
@@ -105,6 +109,7 @@ public class ValidatingTextField extends JTextField {
      * is reasonable.
      */
     public static Cleaner NUMBER_CLEANER = new Cleaner() {
+        @Override
         public String clean(String text) {
             try {
                 Double.parseDouble(text.trim());
@@ -120,6 +125,7 @@ public class ValidatingTextField extends JTextField {
      * Validator that does nothing.
      */
     public static Validator DUMMY_VALIDATOR = new Validator() {
+        @Override
         public boolean isValid(String text) {
             return true;
         }
@@ -162,6 +168,7 @@ public class ValidatingTextField extends JTextField {
             final Validator validator, final Cleaner cleaner) {
         final boolean[] validating = new boolean[] { true };
         textField.setDocument(new PlainDocument() {
+            @Override
             public void insertString(int offs, String str, AttributeSet a)
                     throws BadLocationException {
                 if (!validating[0]) {
@@ -178,6 +185,7 @@ public class ValidatingTextField extends JTextField {
                 }
             }
 
+            @Override
             public void remove(int offs, int len) throws BadLocationException {
                 if (!validating[0]) {
                     super.remove(offs, len);
@@ -194,6 +202,7 @@ public class ValidatingTextField extends JTextField {
             }
         });
         textField.addFocusListener(new FocusAdapter() {
+            @Override
             public void focusLost(FocusEvent e) {
                 // Added validating flag to fix bug: on losing focus, #setText
                 // called #remove, which cleared the text, which then failed
@@ -210,6 +219,7 @@ public class ValidatingTextField extends JTextField {
         });
     }
 
+    @Override
     public String getText() {
         //Focus may not be lost yet (e.g. when syncing with scrollbar) [Jon
         // Aquino]
@@ -243,6 +253,7 @@ public class ValidatingTextField extends JTextField {
             this.threshold = threshold;
         }
 
+        @Override
         public boolean isValid(String text) {
             try {
                 return Double.parseDouble(text.trim()) > threshold;
@@ -264,6 +275,7 @@ public class ValidatingTextField extends JTextField {
             this.threshold = threshold;
         }
 
+        @Override
         public boolean isValid(String text) {
             try {
                 return Double.parseDouble(text.trim()) < threshold;
@@ -284,6 +296,7 @@ public class ValidatingTextField extends JTextField {
             this.threshold = threshold;
         }
 
+        @Override
         public boolean isValid(String text) {
             try {
                 return Double.parseDouble(text.trim()) >= threshold;
@@ -304,6 +317,7 @@ public class ValidatingTextField extends JTextField {
             this.threshold = threshold;
         }
 
+        @Override
         public boolean isValid(String text) {
             try {
                 return Double.parseDouble(text.trim()) <= threshold;
@@ -324,6 +338,7 @@ public class ValidatingTextField extends JTextField {
             this.replacement = replacement;
         }
 
+        @Override
         public String clean(String text) {
             try {
                 Double.parseDouble(text.trim());
@@ -351,6 +366,7 @@ public class ValidatingTextField extends JTextField {
             this.replacement = replacement;
         }
 
+        @Override
         public String clean(String text) {
             return (text.trim().length() == 0) ? getReplacement() : text;
         }
@@ -367,6 +383,7 @@ public class ValidatingTextField extends JTextField {
             this.minimum = minimum;
         }
 
+        @Override
         public String clean(String text) {
             return "" + Math.max(minimum, Integer.parseInt(text));
         }
@@ -405,6 +422,7 @@ public class ValidatingTextField extends JTextField {
             this.maximum = maximum;
         }
 
+        @Override
         public String clean(String text) {
             return "" + Math.min(maximum, Integer.parseInt(text));
         }
@@ -421,6 +439,7 @@ public class ValidatingTextField extends JTextField {
             this.validators = validators;
         }
 
+        @Override
         public boolean isValid(String text) {
             for (int i = 0; i < validators.length; i++) {
                 if (!validators[i].isValid(text)) {
@@ -439,6 +458,7 @@ public class ValidatingTextField extends JTextField {
             this.cleaners = cleaners;
         }
 
+        @Override
         public String clean(String text) {
             String result = text;
             for (int i = 0; i < cleaners.length; i++) {

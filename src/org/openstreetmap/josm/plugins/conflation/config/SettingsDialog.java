@@ -147,6 +147,8 @@ public class SettingsDialog extends ExtendedDialog {
         };
         this.addComponentListener(new ComponentAdapter() {
             private boolean listenersAdded = false;
+
+            @Override
             public void componentHidden(ComponentEvent e) {
                 if (listenersAdded) {
                     DataSet.removeSelectionListener(selectionChangeListener);
@@ -155,6 +157,7 @@ public class SettingsDialog extends ExtendedDialog {
                 }
             }
 
+            @Override
             public void componentShown(ComponentEvent e) {
                 if (!listenersAdded) {
                     DataSet.addSelectionListener(selectionChangeListener);
@@ -660,7 +663,7 @@ public class SettingsDialog extends ExtendedDialog {
                 }
                 p.visitKeys(referenceKeysVisitor);
             }
-            referenceKeys.remove(OsmPrimitive.getDiscardableKeys());
+            referenceKeys.removeAll(OsmPrimitive.getDiscardableKeys());
             referenceTagsAutoCompletionList.clear();
             referenceTagsAutoCompletionList.add(referenceKeys, AutoCompletionItemPriority.IS_IN_DATASET);
             referenceLayerLabel.setText(referenceLayer.getName());

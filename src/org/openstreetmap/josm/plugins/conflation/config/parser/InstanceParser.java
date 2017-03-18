@@ -50,6 +50,7 @@ class InstanceParser<M> implements IParser {
         return isValid();
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("InstanceParser(" + mainType.getSimpleName() + ")\n");
         sb.append("text:    '" + text + "'\n");
@@ -131,21 +132,21 @@ class InstanceParser<M> implements IParser {
     private <T> T parse(Class<T> type, boolean lastArg, String description) {
         this.completionList.clear();
         if (Byte.TYPE.isAssignableFrom(type) || Byte.class.isAssignableFrom(type)) {
-            return (T) new Byte(findToken(INTEGER_PATTERN, description, "Integer number"));
+            return (T) Byte.valueOf(findToken(INTEGER_PATTERN, description, "Integer number"));
         } else if (Short.TYPE.isAssignableFrom(type) || Short.class.isAssignableFrom(type)) {
-            return (T) new Short(findToken(INTEGER_PATTERN, description, "Integer number"));
+            return (T) Short.valueOf(findToken(INTEGER_PATTERN, description, "Integer number"));
         } else if (Integer.TYPE.isAssignableFrom(type) || Integer.class.isAssignableFrom(type)) {
-            return (T) new Integer(findToken(INTEGER_PATTERN, description, "Integer number"));
+            return (T) Integer.valueOf(findToken(INTEGER_PATTERN, description, "Integer number"));
         } else if (Long.TYPE.isAssignableFrom(type) || Long.class.isAssignableFrom(type)) {
-            return (T) new Long(findToken(INTEGER_PATTERN, description, "Integer number"));
+            return (T) Long.valueOf(findToken(INTEGER_PATTERN, description, "Integer number"));
         } else if (Float.TYPE.isAssignableFrom(type) || Float.class.isAssignableFrom(type)) {
-            return (T) new Float(findToken(FLOAT_PATTERN, description, "Floating-point number"));
+            return (T) Float.valueOf(findToken(FLOAT_PATTERN, description, "Floating-point number"));
         } else if (Double.TYPE.isAssignableFrom(type) || Double.class.isAssignableFrom(type)) {
-            return (T) new Double(findToken(FLOAT_PATTERN, description, "Floating-point number"));
+            return (T) Double.valueOf(findToken(FLOAT_PATTERN, description, "Floating-point number"));
         } else if (Boolean.TYPE.isAssignableFrom(type) || Boolean.class.isAssignableFrom(type)) {
             completionList.add("true");
             completionList.add("false");
-            return (T) new Boolean(findToken(BOOLEAN_PATTERN, description, "True or false"));
+            return (T) Boolean.valueOf(findToken(BOOLEAN_PATTERN, description, "True or false"));
         } else if (Character.TYPE.isAssignableFrom(type) || Character.class.isAssignableFrom(type)) {
             String s = findToken(STRING_PATTERN, description, "Quoted char");
             //TODO: correctly unescaping the string
@@ -153,7 +154,7 @@ class InstanceParser<M> implements IParser {
             if (s.length() != 3) {
                 throw new Error("A single character was exepcted");
             }
-            return (T) new Character(s.charAt(1));
+            return (T) Character.valueOf(s.charAt(1));
         } else if (String.class.isAssignableFrom(type)) {
             String s = findToken(STRING_PATTERN, description, "Quoted string");
             //TODO: correctly unescaping the string

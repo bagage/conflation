@@ -19,6 +19,7 @@ import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.LevenshteinDistanceValueMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.OsmNormalizeRule;
+import org.openstreetmap.josm.plugins.conflation.matcher.StandardDistanceMatcher;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.AbstractDistanceMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.BasicFCMatchFinder;
@@ -42,7 +43,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
     private final String[] methodString = {tr("Disambiguating"), tr("One to One")};
     private final JComboBox<String> methodCombeBox = new JComboBox<>(methodString);
     private final JLabel distanceLabel = new JLabel(tr("Distance"));
-    private final String[] distanceStrings = {tr("Centroid"), tr("Hausdorff")};
+    private final String[] distanceStrings = {tr("Standard"), tr("Centroid"), tr("Hausdorff")};
     private final JComboBox<String> distanceComboBox = new JComboBox<>(distanceStrings);
     private final JLabel threshDistanceLabel = new JLabel(" < ");
     private final MyValidatingTextField threshDistanceField = new MyValidatingTextField(
@@ -52,7 +53,6 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
 
     public SimpleMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
         super();
-        distanceComboBox.setSelectedIndex(1);
         threshDistanceField.setToolTipText(tr("Maximum Distance"));
         tagsField.setToolTipText(tr("List of tags to match (default: none)"));
         methodCombeBox.setFont(methodCombeBox.getFont().deriveFont(Font.PLAIN));
@@ -97,14 +97,19 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
         restoreFromPreferences();
     }
 
+    @Override
     public FCMatchFinder getMatchFinder() {
         ArrayList<FeatureMatcher> matchers = new ArrayList<>();
         if (threshDistanceField.getDouble() > 0) {
             // Use a WindowMatcher limit the search area and speed up execution time.
             matchers.add(new WindowMatcher(threshDistanceField.getDouble()));
         }
-        AbstractDistanceMatcher distanceMatcher = (distanceComboBox.getSelectedIndex() == 0) ?
-                new CentroidDistanceMatcher() : new HausdorffDistanceMatcher();
+        AbstractDistanceMatcher distanceMatcher;
+        switch(distanceComboBox.getSelectedIndex()) {
+            case 1: distanceMatcher = new CentroidDistanceMatcher(); break;
+            case 2: distanceMatcher = new HausdorffDistanceMatcher(); break;
+            default: distanceMatcher = new StandardDistanceMatcher(); break;
+        }
         distanceMatcher.setMaxDistance(threshDistanceField.getDouble());
         matchers.add(distanceMatcher);
         List<String> tags = splitBySpaceComaOrSemicolon(tagsField.getText());
@@ -140,6 +145,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
         tagsField.setText(Main.pref.get(getClass().getName() + ".tags", ""));
     }
 
+    @Override
     public void savePreferences() {
         Main.pref.putInteger(getClass().getName() + ".methodIndex", methodCombeBox.getSelectedIndex());
         Main.pref.putInteger(getClass().getName() + ".distanceIndex", distanceComboBox.getSelectedIndex());

@@ -111,7 +111,7 @@ public class FeatureSchema implements Cloneable {
         }
 
         attributeNames.add(attributeName);
-        attributeNameToIndexMap.put(attributeName, new Integer(attributeCount));
+        attributeNameToIndexMap.put(attributeName, Integer.valueOf(attributeCount));
         attributeTypes.add(attributeType);
         attributeCount++;
     }

@@ -70,7 +70,7 @@ public class WeightedMatcher implements FeatureMatcher {
     if (weight == 0) {
         return;
     }
-    matcherToWeightMap.put(matcher, new Double(weight));
+    matcherToWeightMap.put(matcher, Double.valueOf(weight));
   }
 
   private Map<FeatureMatcher, Double> matcherToWeightMap = new HashMap<>();
@@ -128,8 +128,8 @@ public class WeightedMatcher implements FeatureMatcher {
 
   private void addToFeatureToScoreMap(Feature feature, double score, Map<Feature, Double> featureToScoreMap) {
     Double oldScore = featureToScoreMap.get(feature);
-    if (oldScore == null) { oldScore = new Double(0); }
-    featureToScoreMap.put(feature, new Double(oldScore.doubleValue() + score));
+    if (oldScore == null) { oldScore = Double.valueOf(0); }
+    featureToScoreMap.put(feature, Double.valueOf(oldScore.doubleValue() + score));
   }
 
   private double normalizedWeight(FeatureMatcher matcher) {

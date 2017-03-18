@@ -51,6 +51,7 @@ public class SymDiffMatcher extends IndependentCandidateMatcher {
    * @param candidate the feature to compare with the target
    * @return candidates with a score greater than 0 (typically all the candidates).
    */
+  @Override
   public double match(Geometry target, Geometry candidate) {
     Geometry targetGeom = (Geometry) target.clone();
     Geometry candidateGeom = (Geometry) candidate.clone();

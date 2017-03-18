@@ -48,7 +48,7 @@ public class RemoveMatchCommand extends Command {
 
     @Override
     public String getDescriptionText() {
-        return trn("Delete {0} conflation matche", "Delete {0} conflation matches", toRemove.size(), toRemove.size());
+        return trn("Delete {0} conflation match", "Delete {0} conflation matches", toRemove.size(), toRemove.size());
     }
 
     @Override

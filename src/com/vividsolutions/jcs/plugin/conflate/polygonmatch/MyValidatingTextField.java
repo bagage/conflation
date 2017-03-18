@@ -30,6 +30,7 @@ public class MyValidatingTextField extends ValidatingTextField {
         super(text, columns, validator);
         setHorizontalAlignment(alignment);
         addFocusListener(new FocusAdapter() {
+            @Override
             public void focusLost(FocusEvent e) {
                 if (getText().trim().length() == 0) {
                     setText(emptyStringReplacement);
@@ -42,6 +43,7 @@ public class MyValidatingTextField extends ValidatingTextField {
 
     public static final Validator NON_NEGATIVE_DOUBLE_VALIDATOR =
         new ValidatingTextField.Validator() {
+        @Override
         public boolean isValid(String text) {
             if (text.length() == 0) {
                 return true;
@@ -56,6 +58,7 @@ public class MyValidatingTextField extends ValidatingTextField {
         }
     };
 
+    @Override
     public double getDouble() {
         try {
             return Double.parseDouble(getText().trim());
@@ -77,6 +80,7 @@ public class MyValidatingTextField extends ValidatingTextField {
 
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR =
         new ValidatingTextField.Validator() {
+        @Override
         public boolean isValid(String text) {
             if (text.length() == 0) {
                 return true;
@@ -94,6 +98,7 @@ public class MyValidatingTextField extends ValidatingTextField {
         public CompositeValidator(Validator[] validators) {
             this.validators = validators;
         }
+        @Override
         public boolean isValid(String text) {
             for (int i = 0; i < validators.length; i++) {
                 if (!validators[i].isValid(text)) {
@@ -109,6 +114,7 @@ public class MyValidatingTextField extends ValidatingTextField {
         public GreaterThanValidator(double threshold) {
             this.threshold = threshold;
         }
+        @Override
         public boolean isValid(String text) {
             return text.trim().length() == 0
                 || Double.parseDouble(text.trim()) > threshold;

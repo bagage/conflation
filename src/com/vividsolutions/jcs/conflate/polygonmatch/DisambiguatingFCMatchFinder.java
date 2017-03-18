@@ -37,7 +37,7 @@ public class DisambiguatingFCMatchFinder implements FCMatchFinder {
             }
             targets.add(match.getTarget());
             candidates.add(match.getCandidate());
-            scores.add(new Double(match.getScore()));
+            scores.add(Double.valueOf(match.getScore()));
         }
         //Re-add filtered-out targets, but with zero-score matches [Jon Aquino]
         Map<Feature, Matches> targetToMatchesMap =

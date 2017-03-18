@@ -22,13 +22,19 @@ public class SimpleMatch implements Comparable<SimpleMatch> {
 
     public SimpleMatch(OsmPrimitive referenceObject,
             OsmPrimitive subjectObject, double score) {
+        this(referenceObject, subjectObject, score,
+                // TODO: use distance calculated in score function, and make sure it's in meters?
+                ConflationUtils.getCenter(referenceObject).distance(ConflationUtils.getCenter(subjectObject)));
+    }
+
+    public SimpleMatch(OsmPrimitive referenceObject,
+            OsmPrimitive subjectObject, double score, double distance) {
         CheckParameterUtil.ensureParameterNotNull(referenceObject, "referenceObject");
         CheckParameterUtil.ensureParameterNotNull(subjectObject, "subjectObject");
         this.referenceObject = referenceObject;
         this.subjectObject = subjectObject;
         this.score = score;
-        // TODO: use distance calculated in score function, and make sure it's in meters?
-        this.distance = ConflationUtils.getCenter(referenceObject).distance(ConflationUtils.getCenter(subjectObject));
+        this.distance = distance;
     }
 
     public OsmPrimitive getReferenceObject() {
@@ -56,9 +62,9 @@ public class SimpleMatch implements Comparable<SimpleMatch> {
      * @return the TagCollection for the resulting object of the conflation of this match.
      */
     public TagCollection getMergingTagCollection(SimpleMatchSettings settings) {
-        if ((subjectObject.getId() >= 0) && (referenceObject.getId() >= 0)
+        if ((subjectObject.getId() > 0) && (referenceObject.getId() > 0)
                 && settings.isReplacingGeometry && referenceObject.getDataSet() == subjectObject.getDataSet()) {
-            // In this situation we are conflating already existing OSM objects (getId() >=0)
+            // In this situation we are conflating already existing OSM objects (getId() >0)
             // which are on the same DataSet so one will be deleted by the ReplaceGeometryCommand.
             // We don't wan't to silently delete important tags, so in this particular situation we force
             // tag merging dialogue for user confirmation by returning a full tag collection:
@@ -71,7 +77,7 @@ public class SimpleMatch implements Comparable<SimpleMatch> {
                     if (settings.overwriteTags.contains(refTag.getKey())) {
                         tagCollection.removeByKey(refTag.getKey());
                         tagCollection.add(refTag);
-                    } else if (settings.mergeTags.contains(refTag.getKey())) {
+                    } else if (settings.mergeTags.contains(refTag.getKey()) || (referenceObject.getId() > 0)) {
                         tagCollection.add(refTag);
                     }
                 }
