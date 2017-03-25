@@ -616,6 +616,17 @@ public class SettingsDialog extends ExtendedDialog {
         int numWays = 0;
         int numRelations = 0;
 
+        // if subject and reference sets are the same, hint user that this must be wrong
+        if (subjectLayer != null && subjectLayer == referenceLayer && !subjectSelection.isEmpty()) {
+            boolean identicalSet = (subjectSelection.size() == referenceSelection.size() 
+                    && new HashSet<>(subjectSelection).containsAll(referenceSelection));
+            if (identicalSet) {
+                JOptionPane.showMessageDialog(Main.parent,
+                        tr("Reference and subject sets should better be different."), tr("Warning"),
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        }
+
         if (!subjectSelection.isEmpty()) {
             for (OsmPrimitive p : subjectSelection) {
                 if (p instanceof Node) {
