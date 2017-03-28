@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-        <classpathentry kind="src" path="test/unit"/>
+	<classpathentry kind="src" path="test/unit"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-        <classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/JOSM"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/JOSM-jts"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/JOSM-utilsplugin2"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="/home/gautier/code/osm/josm/core/dist/josm-custom.jar"/>
+	<classpathentry kind="lib" path="/home/gautier/code/osm/josm/dist/utilsplugin2.jar"/>
+	<classpathentry kind="lib" path="/home/gautier/code/osm/josm/dist/jts.jar"/>
 	<classpathentry kind="output" path="build"/>
 </classpath>
