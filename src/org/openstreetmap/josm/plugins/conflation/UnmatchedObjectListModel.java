@@ -21,11 +21,14 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
 
     private ArrayList<OsmPrimitive> list = new ArrayList<>();
 
+    private int updateCount = 0;
+    private boolean updateHasChanged = false;
+
     public void clear() {
         int size = list.size();
         if (size > 0) {
             list.clear();
-            fireIntervalRemoved(this, 0, size - 1);
+            if (shouldFireEvent()) fireIntervalRemoved(this, 0, size - 1);
         }
     }
 
@@ -51,7 +54,7 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
         if (index < 0) {
             index = -index - 1;
             list.add(index, element);
-            fireIntervalAdded(this, index, index);
+            if (shouldFireEvent()) fireIntervalAdded(this, index, index);
             return true;
         } else {
             return false;
@@ -62,7 +65,7 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
         if ((list.size() == 0) && (objects.size() > 0)) {
             list.addAll(objects);
             Collections.sort(list);
-            fireIntervalAdded(this, 0, list.size() - 1);
+            if (shouldFireEvent()) fireIntervalAdded(this, 0, list.size() - 1);
             return true;
         } else {
             boolean changed = false;
@@ -77,7 +80,7 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
         int index = Collections.binarySearch(list, element);
         if (index >= 0) {
             list.remove(index);
-            fireIntervalRemoved(this, index, index);
+            if (shouldFireEvent()) fireIntervalRemoved(this, index, index);
             return true;
         } else {
             return false;
@@ -90,5 +93,31 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
             changed = removeElement(p) || changed;
         }
         return changed;
+    }
+
+    public boolean shouldFireEvent() {
+        if (updateCount > 0) {
+            updateHasChanged = true;
+            return false;
+        }
+        return true;
+    }
+    public void beginUpdate() {
+        updateCount++;
+    }
+
+    /**
+     * @see DataSet#beginUpdate()
+     */
+    public void endUpdate() {
+        if (updateCount > 0) {
+            updateCount--;
+            if (updateCount == 0 && updateHasChanged) {
+                updateHasChanged = false;
+                fireContentsChanged(this, 0, getSize());
+            }
+        } else {
+            throw new AssertionError("endUpdate called without beginUpdate");
+        }
     }
 }

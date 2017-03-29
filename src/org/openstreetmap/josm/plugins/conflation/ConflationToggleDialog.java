@@ -105,7 +105,9 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     final ZoomToListSelectionAction zoomToListSelectionAction;
     final SelectionPopup selectionPopup;
 
-    // Keep track of conflation cases automatically removed (because of corresponding primitives removal), 
+    MatchListSelectionHandler m1, m2;
+
+    // Keep track of conflation cases automatically removed (because of corresponding primitives removal),
     // to be able to restore them (in case of Undo)
     private final HashSet<OsmPrimitive> primitivesRemovedReferenceOnly = new HashSet<>();
     private final HashSet<OsmPrimitive> primitivesRemovedSubjectOnly = new HashSet<>();
@@ -121,7 +123,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             settingsDialog = new SettingsDialog();
             settingsDialog.setModalityType(Dialog.ModalityType.MODELESS);
             settingsDialog.addWindowListener(new WindowAdapter() {
-    
+
                 @Override
                 public void windowClosed(WindowEvent e) {
                     // "Generate matches" was clicked
@@ -142,10 +144,10 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         matchTable = new JTable(matchTableModel);
 
         // add selection handler, to center/zoom view
-        matchTable.getSelectionModel().addListSelectionListener(
-                new MatchListSelectionHandler());
-        matchTable.getColumnModel().getSelectionModel().addListSelectionListener(
-                new MatchListSelectionHandler());
+        m1 = new MatchListSelectionHandler();
+        m2 = new MatchListSelectionHandler();
+        matchTable.getSelectionModel().addListSelectionListener(m1);
+        matchTable.getColumnModel().getSelectionModel().addListSelectionListener(m2);
 
         // FIXME: doesn't work right now
         matchTable.getColumnModel().getColumn(0).setCellRenderer(new OsmPrimitivRenderer());
@@ -553,7 +555,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     class MatchListSelectionHandler implements ListSelectionListener {
 
         @Override
-        public void valueChanged(ListSelectionEvent e) {
+        public void valueChanged(ListSelectionEvent lse) {
             matches.setSelected(getSelectedFromTable());
             Main.map.mapView.repaint();
         }
@@ -609,7 +611,56 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    class RemoveAction extends JosmAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
+    // When performing actuals actions (conflate items, remove from list, etc.), we execute command
+    // one for each row selected in the table. This result in datatable events emitted for each row.
+    // Since we do NOT want to treat these events in the middle of the batch, we simply remove all
+    // listeners before executing commands. On end, we reset them in place and manually triggers a
+    // "dataTable change" event.
+    class BatchAction extends JosmAction {
+        public BatchAction(String name, String iconName, String tooltip, Shortcut shortcut, boolean registerInToolbar) {
+            super(name, iconName, tooltip, shortcut, registerInToolbar);
+        }
+
+        public void actualActionPerformed(ActionEvent e) {}
+
+        private void beginUpdate() {
+            DataSet.removeSelectionListener(ConflationToggleDialog.this);
+            DataSet subjectDataSet = settings.subjectDataSet;
+            if (subjectDataSet != null) {
+                subjectDataSet.removeDataSetListener(ConflationToggleDialog.this);
+            }
+            settings.referenceDataSet.beginUpdate();
+            settings.subjectDataSet.beginUpdate();
+            matches.beginUpdate();
+            referenceOnlyListModel.beginUpdate();
+            subjectOnlyListModel.beginUpdate();
+        }
+
+        private void endUpdate() {
+            DataSet.addSelectionListener(ConflationToggleDialog.this);
+            DataSet subjectDataSet = settings.subjectDataSet;
+            if (subjectDataSet != null) {
+                subjectDataSet.addDataSetListener(ConflationToggleDialog.this);
+            }
+            settings.referenceDataSet.endUpdate();
+            settings.subjectDataSet.endUpdate();
+            matches.endUpdate();
+            referenceOnlyListModel.endUpdate();
+            subjectOnlyListModel.endUpdate();
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            beginUpdate();
+            try {
+                actualActionPerformed(e);
+            } finally {
+                endUpdate();
+            }
+        }
+    }
+
+    class RemoveAction extends BatchAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
 
         RemoveAction() {
             super(tr("Remove"), "dialogs/delete", tr("Remove selected matches"),
@@ -617,7 +668,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         @Override
-        public void actionPerformed(ActionEvent e) {
+        public void actualActionPerformed(ActionEvent e) {
             Component selComponent = getSelectedTabComponent();
             if (selComponent.equals(matchTable)) {
                 if ((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0) {
@@ -695,7 +746,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
     }
 
-    class ConflateAction extends JosmAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
+    class ConflateAction extends BatchAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
 
         ConflateAction() {
             // TODO: make sure shortcuts make sense
@@ -705,23 +756,11 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         @Override
-        public void actionPerformed(ActionEvent e) {
-            DataSet.removeSelectionListener(ConflationToggleDialog.this);
-            DataSet subjectDataSet = settings.subjectDataSet;
-            if (subjectDataSet != null) {
-                subjectDataSet.removeDataSetListener(ConflationToggleDialog.this);
-            }
-            try {
-                if (getSelectedTabComponent().equals(matchTable))
-                    conflateMatchActionPerformed();
-                else if (getSelectedTabComponent().equals(referenceOnlyList))
-                    conflateUnmatchedObjectActionPerformed();
-            } finally {
-                DataSet.addSelectionListener(ConflationToggleDialog.this);
-                if (subjectDataSet != null) {
-                    subjectDataSet.addDataSetListener(ConflationToggleDialog.this);
-                }
-            }
+        public void actualActionPerformed(ActionEvent e) {
+            if (getSelectedTabComponent().equals(matchTable))
+                conflateMatchActionPerformed();
+            else if (getSelectedTabComponent().equals(referenceOnlyList))
+                conflateUnmatchedObjectActionPerformed();
         }
 
         private void conflateUnmatchedObjectActionPerformed() {
@@ -739,7 +778,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             if (cmds.size() == 1) {
                 Main.main.undoRedo.add(cmds.get(0));
             } else if (cmds.size() > 1) {
-                Command seqCmd = new StopOnErrorSequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds); 
+                Command seqCmd = new StopOnErrorSequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds);
                 Main.main.undoRedo.add(seqCmd);
             }
             if (matches.getSelected().isEmpty())
@@ -807,14 +846,14 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
      * the list (either matches or single primitives).
      *
      */
-    class ZoomToListSelectionAction extends JosmAction implements ListSelectionListener {
+    class ZoomToListSelectionAction extends BatchAction implements ListSelectionListener {
         ZoomToListSelectionAction() {
             super(tr("Zoom to selected primitive(s)"), "dialogs/autoscale/selection", tr("Zoom to selected primitive(s)"),
                     null, false);
         }
 
         @Override
-        public void actionPerformed(ActionEvent e) {
+        public void actualActionPerformed(ActionEvent e) {
             if (matchTable == null)
                 return;
 
@@ -830,7 +869,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         @Override
-        public void valueChanged(ListSelectionEvent e) {
+        public void valueChanged(ListSelectionEvent lse) {
             updateEnabledState();
         }
     }
@@ -840,14 +879,14 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
      * the list (either matches or single primitives).
      *
      */
-    class SelectListSelectionAction extends JosmAction implements ListSelectionListener {
+    class SelectListSelectionAction extends BatchAction implements ListSelectionListener {
         SelectListSelectionAction() {
             super(tr("Select selected primitive(s)"), "dialogs/select", tr("Select the primitives currently selected in the list"),
                     null, false);
         }
 
         @Override
-        public void actionPerformed(ActionEvent e) {
+        public void actualActionPerformed(ActionEvent e) {
             if (matchTable == null)
                 return;
             selectAllListSelectedPrimitives();
@@ -859,7 +898,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         @Override
-        public void valueChanged(ListSelectionEvent e) {
+        public void valueChanged(ListSelectionEvent lse) {
             updateEnabledState();
         }
     }
@@ -894,20 +933,20 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
      * The popup menu for the selection list
      */
     class SelectionPopup extends JPopupMenu {
+        public SelectListSelectionAction selectListSelectionAction;
         SelectionPopup() {
             matchTable.getSelectionModel().addListSelectionListener(zoomToListSelectionAction);
             subjectOnlyList.addListSelectionListener(zoomToListSelectionAction);
             referenceOnlyList.addListSelectionListener(zoomToListSelectionAction);
             add(zoomToListSelectionAction);
 
-            SelectListSelectionAction selectListSelectionAction = new SelectListSelectionAction();
+            selectListSelectionAction = new SelectListSelectionAction();
             matchTable.getSelectionModel().addListSelectionListener(selectListSelectionAction);
             subjectOnlyList.addListSelectionListener(selectListSelectionAction);
             referenceOnlyList.addListSelectionListener(selectListSelectionAction);
             add(selectListSelectionAction);
         }
     }
-
     /* ---------------------------------------------------------------------------------- */
     /* DataSetListener                                                                    */
     /* ---------------------------------------------------------------------------------- */

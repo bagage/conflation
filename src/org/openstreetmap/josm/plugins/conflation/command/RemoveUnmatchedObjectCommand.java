@@ -26,12 +26,17 @@ public class RemoveUnmatchedObjectCommand extends Command {
 
     @Override
     public boolean executeCommand() {
-        return model.removeAll(objects);
+        model.beginUpdate();
+        boolean res = model.removeAll(objects);
+        model.endUpdate();
+        return res;
     }
 
     @Override
     public void undoCommand() {
+        model.beginUpdate();
         model.addAll(objects);
+        model.endUpdate();
     }
 
     @Override

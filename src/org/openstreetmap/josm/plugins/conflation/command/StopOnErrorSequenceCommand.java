@@ -35,7 +35,7 @@ public class StopOnErrorSequenceCommand extends Command {
     public StopOnErrorSequenceCommand(String name, Collection<Command> sequenz) {
         this(name, sequenz.toArray(new Command[sequenz.size()]), sequenz.size());
     }
-    
+
     private StopOnErrorSequenceCommand(String name, Command[] sequence, int nbToExecute) {
         this.name = name;
         this.sequence = sequence;
