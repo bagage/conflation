@@ -54,7 +54,9 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
             "\t\t\t\t\t\t10, Compactness,\n" +
             "\t\t\t\t\t\t10, AngleHistogram( 18 ),\n" +
             "\t\t\t\t\t\t50, Attribute( 'name', LevenshteinDistance( 0 ), OsmRule( 'name' ))\n" +
-            "))))))";
+            "\t\t\t\t\t),\n" +
+            "\t\t\t\t\tIdenticalFilter\n" +
+            ")))))";
 
     public ProgrammingMatchFinderPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
