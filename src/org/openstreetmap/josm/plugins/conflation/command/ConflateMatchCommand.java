@@ -44,18 +44,17 @@ import org.openstreetmap.josm.tools.UserCancelException;
  * Command to conflate one object with another.
  */
 public class ConflateMatchCommand extends Command {
-
     private final SimpleMatch match;
-    private final SimpleMatchList matcheList;
+    private final SimpleMatchList matchesList;
     private final SimpleMatchSettings settings;
     private SequenceCommand command;
     private boolean builded;
 
     public ConflateMatchCommand(SimpleMatch match,
-            SimpleMatchList matcheList, SimpleMatchSettings settings) {
+            SimpleMatchList matchesList, SimpleMatchSettings settings) {
         super(settings.subjectLayer);
         this.match = match;
-        this.matcheList = matcheList;
+        this.matchesList = matchesList;
         this.settings = settings;
         // REM: the real commands are only built at execution time to ensure
         // that many ConflateMatchCommand could be combined in a SequenecCommand even
@@ -74,17 +73,23 @@ public class ConflateMatchCommand extends Command {
                 buildCopyAndReplaceGeometryCommand(match, settings)
                 : buildTagMergingCommand(match, settings);
             if (list != null) {
-                list.add(new RemoveMatchCommand(matcheList, Arrays.asList(match)));
+                list.add(new RemoveMatchCommand(matchesList, Arrays.asList(match)));
                 command = new SequenceCommand("", list);
             }
         }
-        return (command != null) ? command.executeCommand() : false;
+        matchesList.beginUpdate();
+        boolean res = (command != null) ? command.executeCommand() : false;
+        matchesList.endUpdate();
+        return res;
     }
 
     @Override
     public void undoCommand() {
-        if (command != null)
+        if (command != null) {
+            matchesList.beginUpdate();
             command.undoCommand();
+            matchesList.endUpdate();
+        }
     }
 
     @Override
@@ -126,7 +131,7 @@ public class ConflateMatchCommand extends Command {
      * Support a reference object in a different DataSet than the subject's one, in which case it will be copied.
      *
      * Respect the settings for tag merging conflict.
-     * Will remove tags that where not supposed to be kept.
+     * Will remove tags that were not supposed to be kept.
      *
      * @return the commands list or null if user canceled or error occurred.
      */

@@ -52,16 +52,20 @@ public class ConflateUnmatchedObjectCommand extends Command {
 
     @Override
     public boolean executeCommand() {
+        listModel.beginUpdate();
         if (!addPrimitivesCommand.executeCommand())
             return false;
         listModel.removeAll(unmatchedObjects);
+        listModel.endUpdate();
         return true;
     }
 
     @Override
     public void undoCommand() {
+        listModel.beginUpdate();
         addPrimitivesCommand.undoCommand();
         listModel.addAll(unmatchedObjects);
+        listModel.endUpdate();
     }
 
     @Override

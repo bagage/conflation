@@ -27,19 +27,27 @@ public class MoveMatchToUnmatchedCommand extends RemoveMatchCommand {
     @Override
     public boolean executeCommand() {
         super.executeCommand();
+        referenceOnlyListModel.beginUpdate();
+        subjectOnlyListModel.beginUpdate();
         for (SimpleMatch match: toRemove) {
             referenceOnlyListModel.addElement(match.getReferenceObject());
             subjectOnlyListModel.addElement(match.getSubjectObject());
         }
+        referenceOnlyListModel.endUpdate();
+        subjectOnlyListModel.endUpdate();
         return true;
     }
 
     @Override
     public void undoCommand() {
+        referenceOnlyListModel.beginUpdate();
+        subjectOnlyListModel.beginUpdate();
         for (SimpleMatch match: toRemove) {
             referenceOnlyListModel.removeElement(match.getReferenceObject());
             subjectOnlyListModel.removeElement(match.getSubjectObject());
         }
+        referenceOnlyListModel.endUpdate();
+        subjectOnlyListModel.endUpdate();
         super.undoCommand();
     }
 

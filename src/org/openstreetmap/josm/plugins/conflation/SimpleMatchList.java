@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
@@ -22,6 +23,9 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
 
     private final HashMap<OsmPrimitive, SimpleMatch> byReference = new HashMap<>();
     private final HashMap<OsmPrimitive, SimpleMatch> bySubject = new HashMap<>();
+
+    private int updateCount = 0;
+    private boolean updateHasChanged = false;
 
     public SimpleMatchList() {
     }
@@ -149,16 +153,31 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         SimpleMatch next = findNextSelection();
 
         boolean isChanged = false;
+        Set<Integer> removedIdx = new HashSet<>();
+        int maxSize = matches.size();
         for (SimpleMatch sm : matchesToRemove) {
             int index = Collections.binarySearch(matches, sm);
             if (index >= 0) {
-                matches.remove(index);
                 byReference.remove(sm.getReferenceObject());
                 bySubject.remove(sm.getSubjectObject());
-                fireIntervalRemoved(index, index);
+                removedIdx.add(index);
                 isChanged = true;
             }
         }
+        matches.removeAll(matchesToRemove);
+        // regroup removed items by interval to avoid firing too many
+        // "IntervalRemoved" events which is used for GUI updates which
+        // are time-consuming
+        for (int i = 0; i < maxSize; i++) {
+            if (!removedIdx.contains(i))
+                continue;
+            int startRange = i;
+            while (i < maxSize && removedIdx.contains(i)) {
+                i++;
+            }
+            fireIntervalRemoved(startRange, i-1);
+        }
+
 
         if (selected.removeAll(matchesToRemove)) {
 
@@ -184,24 +203,28 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     }
 
     public void fireListChanged() {
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListChanged(this);
         }
     }
 
     public void fireSelectionChanged() {
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchSelectionChanged(selected);
         }
     }
 
     public void fireIntervalAdded(int index0, int index1) {
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalAdded(this, index0, index1);
         }
     }
 
     public void fireIntervalRemoved(int index0, int index1) {
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalRemoved(this, index0, index1);
         }
@@ -228,5 +251,31 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         selected.clear();
         selected.addAll(matches);
         fireSelectionChanged();
+    }
+
+    public boolean shouldFireEvent() {
+        if (updateCount > 0) {
+            updateHasChanged = true;
+            return false;
+        }
+        return true;
+    }
+    public void beginUpdate() {
+        updateCount++;
+    }
+
+    /**
+     * @see DataSet#beginUpdate()
+     */
+    public void endUpdate() {
+        if (updateCount > 0) {
+            updateCount--;
+            if (updateCount == 0 && updateHasChanged) {
+                updateHasChanged = false;
+                fireListChanged();
+            }
+        } else {
+            throw new AssertionError("endUpdate called without beginUpdate");
+        }
     }
 }

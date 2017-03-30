@@ -24,22 +24,26 @@ import org.openstreetmap.josm.tools.ImageProvider;
 public class RemoveMatchCommand extends Command {
 
     protected final ArrayList<SimpleMatch> toRemove;
-    protected final SimpleMatchList matcheList;
+    protected final SimpleMatchList matchesList;
 
-    public RemoveMatchCommand(SimpleMatchList matcheList, Collection<SimpleMatch> toRemove) {
+    public RemoveMatchCommand(SimpleMatchList matchesList, Collection<SimpleMatch> toRemove) {
         this.toRemove = new ArrayList<>(toRemove);
-        this.matcheList = matcheList;
+        this.matchesList = matchesList;
     }
 
     @Override
     public boolean executeCommand() {
-        matcheList.removeAll(toRemove);
+        matchesList.beginUpdate();
+        matchesList.removeAll(toRemove);
+        matchesList.endUpdate();
         return true;
     }
 
     @Override
     public void undoCommand() {
-        matcheList.addAll(toRemove);
+        matchesList.beginUpdate();
+        matchesList.addAll(toRemove);
+        matchesList.endUpdate();
     }
 
     @Override
