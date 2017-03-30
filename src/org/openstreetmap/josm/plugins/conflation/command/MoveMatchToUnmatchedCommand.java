@@ -29,12 +29,15 @@ public class MoveMatchToUnmatchedCommand extends RemoveMatchCommand {
         super.executeCommand();
         referenceOnlyListModel.beginUpdate();
         subjectOnlyListModel.beginUpdate();
-        for (SimpleMatch match: toRemove) {
-            referenceOnlyListModel.addElement(match.getReferenceObject());
-            subjectOnlyListModel.addElement(match.getSubjectObject());
+        try {
+            for (SimpleMatch match: toRemove) {
+                referenceOnlyListModel.addElement(match.getReferenceObject());
+                subjectOnlyListModel.addElement(match.getSubjectObject());
+            }
+        } finally {
+            referenceOnlyListModel.endUpdate();
+            subjectOnlyListModel.endUpdate();
         }
-        referenceOnlyListModel.endUpdate();
-        subjectOnlyListModel.endUpdate();
         return true;
     }
 
@@ -42,12 +45,15 @@ public class MoveMatchToUnmatchedCommand extends RemoveMatchCommand {
     public void undoCommand() {
         referenceOnlyListModel.beginUpdate();
         subjectOnlyListModel.beginUpdate();
-        for (SimpleMatch match: toRemove) {
-            referenceOnlyListModel.removeElement(match.getReferenceObject());
-            subjectOnlyListModel.removeElement(match.getSubjectObject());
+        try {
+            for (SimpleMatch match: toRemove) {
+                referenceOnlyListModel.removeElement(match.getReferenceObject());
+                subjectOnlyListModel.removeElement(match.getSubjectObject());
+            }
+        } finally {
+            referenceOnlyListModel.endUpdate();
+            subjectOnlyListModel.endUpdate();
         }
-        referenceOnlyListModel.endUpdate();
-        subjectOnlyListModel.endUpdate();
         super.undoCommand();
     }
 

@@ -34,16 +34,22 @@ public class RemoveMatchCommand extends Command {
     @Override
     public boolean executeCommand() {
         matchesList.beginUpdate();
-        matchesList.removeAll(toRemove);
-        matchesList.endUpdate();
+        try {
+            matchesList.removeAll(toRemove);
+        } finally {
+            matchesList.endUpdate();
+        }
         return true;
     }
 
     @Override
     public void undoCommand() {
         matchesList.beginUpdate();
-        matchesList.addAll(toRemove);
-        matchesList.endUpdate();
+        try {
+            matchesList.addAll(toRemove);
+        } finally {
+            matchesList.endUpdate();
+        }
     }
 
     @Override

@@ -25,7 +25,8 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     private final HashMap<OsmPrimitive, SimpleMatch> bySubject = new HashMap<>();
 
     private int updateCount = 0;
-    private boolean updateHasChanged = false;
+    private boolean updateHasChangedList = false;
+    private boolean updateHasChangedSelection = false;
 
     public SimpleMatchList() {
     }
@@ -172,6 +173,7 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
             if (!removedIdx.contains(i))
                 continue;
             int startRange = i;
+            i++;
             while (i < maxSize && removedIdx.contains(i)) {
                 i++;
             }
@@ -203,28 +205,28 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     }
 
     public void fireListChanged() {
-        if (!shouldFireEvent()) return;
+        if (!shouldFireListEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListChanged(this);
         }
     }
 
     public void fireSelectionChanged() {
-        if (!shouldFireEvent()) return;
+        if (!shouldFireSelectionEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchSelectionChanged(selected);
         }
     }
 
     public void fireIntervalAdded(int index0, int index1) {
-        if (!shouldFireEvent()) return;
+        if (!shouldFireListEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalAdded(this, index0, index1);
         }
     }
 
     public void fireIntervalRemoved(int index0, int index1) {
-        if (!shouldFireEvent()) return;
+        if (!shouldFireListEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalRemoved(this, index0, index1);
         }
@@ -253,13 +255,22 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         fireSelectionChanged();
     }
 
-    public boolean shouldFireEvent() {
+    protected boolean shouldFireListEvent() {
         if (updateCount > 0) {
-            updateHasChanged = true;
+            updateHasChangedList = true;
             return false;
         }
         return true;
     }
+
+    protected boolean shouldFireSelectionEvent() {
+        if (updateCount > 0) {
+            updateHasChangedSelection = true;
+            return false;
+        }
+        return true;
+    }
+
     public void beginUpdate() {
         updateCount++;
     }
@@ -270,9 +281,15 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     public void endUpdate() {
         if (updateCount > 0) {
             updateCount--;
-            if (updateCount == 0 && updateHasChanged) {
-                updateHasChanged = false;
-                fireListChanged();
+            if (updateCount == 0) {
+                if (updateHasChangedList) {
+                    updateHasChangedList = false;
+                    fireListChanged();
+                }
+                if (updateHasChangedSelection) {
+                    updateHasChangedSelection = false;
+                    fireSelectionChanged();
+                }
             }
         } else {
             throw new AssertionError("endUpdate called without beginUpdate");

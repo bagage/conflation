@@ -47,9 +47,15 @@ public class ConflateMatchCommand extends Command {
     private final SimpleMatch match;
     private final SimpleMatchList matchesList;
     private final SimpleMatchSettings settings;
-    private SequenceCommand command;
-    private boolean builded;
+    private SequenceCommand command; // may be null
+    private boolean isBuilt;
 
+    /**
+     * Conflate a single match, using the given settings.
+     * @param match the match to conflate
+     * @param matchesList the list of match to update if success (remove the conflated match)
+     * @param settings the settings that tell how to conflate.
+     */
     public ConflateMatchCommand(SimpleMatch match,
             SimpleMatchList matchesList, SimpleMatchSettings settings) {
         super(settings.subjectLayer);
@@ -67,29 +73,17 @@ public class ConflateMatchCommand extends Command {
 
     @Override
     public boolean executeCommand() {
-        if (!builded) {
-            builded = true;
-            List<Command> list = (settings.isReplacingGeometry) ?
-                buildCopyAndReplaceGeometryCommand(match, settings)
-                : buildTagMergingCommand(match, settings);
-            if (list != null) {
-                list.add(new RemoveMatchCommand(matchesList, Arrays.asList(match)));
-                command = new SequenceCommand("", list);
-            }
+        if (!isBuilt) {
+            isBuilt = true;
+            command = buildCommand();
         }
-        matchesList.beginUpdate();
-        boolean res = (command != null) ? command.executeCommand() : false;
-        matchesList.endUpdate();
-        return res;
+        return (command != null) ? command.executeCommand() : false;
     }
 
     @Override
     public void undoCommand() {
-        if (command != null) {
-            matchesList.beginUpdate();
+        if (command != null)
             command.undoCommand();
-            matchesList.endUpdate();
-        }
     }
 
     @Override
@@ -123,6 +117,22 @@ public class ConflateMatchCommand extends Command {
             return command.getChildren();
         else
             return Arrays.asList();
+    }
+
+    /**
+     * Build the full command sequence.
+     * @return the built command or null in case of error or user cancellation.
+     */
+    private SequenceCommand buildCommand() {
+        List<Command> list = (settings.isReplacingGeometry) ?
+                buildCopyAndReplaceGeometryCommand(match, settings)
+                : buildTagMergingCommand(match, settings);
+        if (list == null) {
+            return null;
+        } else {
+            list.add(new RemoveMatchCommand(matchesList, Arrays.asList(match)));
+            return new SequenceCommand("", list);
+        }
     }
 
     /**

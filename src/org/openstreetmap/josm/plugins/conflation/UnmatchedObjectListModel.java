@@ -23,6 +23,7 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
 
     private int updateCount = 0;
     private boolean updateHasChanged = false;
+    private int sizeBeforeChange;
 
     public void clear() {
         int size = list.size();
@@ -95,14 +96,18 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
         return changed;
     }
 
-    public boolean shouldFireEvent() {
+    protected boolean shouldFireEvent() {
         if (updateCount > 0) {
             updateHasChanged = true;
             return false;
         }
         return true;
     }
+
     public void beginUpdate() {
+        if (updateCount == 0) {
+            sizeBeforeChange = list.size();
+        }
         updateCount++;
     }
 
@@ -114,7 +119,12 @@ public class UnmatchedObjectListModel extends AbstractListModel<OsmPrimitive> {
             updateCount--;
             if (updateCount == 0 && updateHasChanged) {
                 updateHasChanged = false;
-                fireContentsChanged(this, 0, getSize());
+                if (sizeBeforeChange > getSize()) {
+                    fireIntervalRemoved(this, getSize(), sizeBeforeChange - 1);
+                } else if (getSize() > sizeBeforeChange) {
+                    fireIntervalAdded(this, sizeBeforeChange, getSize()-1);
+                }
+                fireContentsChanged(this, 0, Integer.min(sizeBeforeChange, getSize()) - 1);
             }
         } else {
             throw new AssertionError("endUpdate called without beginUpdate");

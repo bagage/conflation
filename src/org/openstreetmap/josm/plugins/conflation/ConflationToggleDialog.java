@@ -611,26 +611,27 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    // When performing actuals actions (conflate items, remove from list, etc.), we execute command
-    // one for each row selected in the table. This result in datatable events emitted for each row.
-    // Since we do NOT want to treat these events in the middle of the batch, we simply remove all
-    // listeners before executing commands. On end, we reset them in place and manually triggers a
-    // "dataTable change" event.
-    class BatchAction extends JosmAction {
-        public BatchAction(String name, String iconName, String tooltip, Shortcut shortcut, boolean registerInToolbar) {
+    /**
+     * Deactivate listener events while performing some batch actions.
+     *
+     * When performing actuals actions (conflate items, remove from list, etc.), we execute command
+     * one for each row selected in the table. This result in datatable events emitted for each row.
+     * Since we do NOT want to treat these events in the middle of the batch, we  decativate all
+     * listeners before executing commands. On end, we recativate them.
+     */
+    abstract class BatchAction extends JosmAction {
+
+        BatchAction(String name, String iconName, String tooltip, Shortcut shortcut, boolean registerInToolbar) {
             super(name, iconName, tooltip, shortcut, registerInToolbar);
         }
 
-        public void actualActionPerformed(ActionEvent e) {}
+        public abstract void actualActionPerformed(ActionEvent e);
 
         private void beginUpdate() {
             DataSet.removeSelectionListener(ConflationToggleDialog.this);
-            DataSet subjectDataSet = settings.subjectDataSet;
-            if (subjectDataSet != null) {
-                subjectDataSet.removeDataSetListener(ConflationToggleDialog.this);
+            if (settings.subjectDataSet != null) {
+                settings.subjectDataSet.beginUpdate();
             }
-            settings.referenceDataSet.beginUpdate();
-            settings.subjectDataSet.beginUpdate();
             matches.beginUpdate();
             referenceOnlyListModel.beginUpdate();
             subjectOnlyListModel.beginUpdate();
@@ -638,19 +639,16 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         private void endUpdate() {
             DataSet.addSelectionListener(ConflationToggleDialog.this);
-            DataSet subjectDataSet = settings.subjectDataSet;
-            if (subjectDataSet != null) {
-                subjectDataSet.addDataSetListener(ConflationToggleDialog.this);
+            if (settings.subjectDataSet != null) {
+                settings.subjectDataSet.endUpdate();
             }
-            settings.referenceDataSet.endUpdate();
-            settings.subjectDataSet.endUpdate();
             matches.endUpdate();
             referenceOnlyListModel.endUpdate();
             subjectOnlyListModel.endUpdate();
         }
 
         @Override
-        public void actionPerformed(ActionEvent e) {
+        public final void actionPerformed(ActionEvent e) {
             beginUpdate();
             try {
                 actualActionPerformed(e);
@@ -947,6 +945,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             add(selectListSelectionAction);
         }
     }
+
     /* ---------------------------------------------------------------------------------- */
     /* DataSetListener                                                                    */
     /* ---------------------------------------------------------------------------------- */
