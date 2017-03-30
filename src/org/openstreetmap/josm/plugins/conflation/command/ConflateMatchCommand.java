@@ -151,9 +151,9 @@ public class ConflateMatchCommand extends Command {
         TagCollection tagCollection = match.getMergingTagCollection(settings);
         List<Command> commands = new ArrayList<>(3);
         if (settings.subjectLayer != settings.referenceLayer) {
-            Command copyPrimitiveCommand = buildCopyPrimitiveCommand(referenceObject, settings.subjectLayer);
-            commands.add(copyPrimitiveCommand);
-            if (!copyPrimitiveCommand.executeCommand()) {
+            List<Command> copyPrimitiveCommand = buildCopyPrimitiveCommand(referenceObject, settings.subjectLayer);
+            commands.addAll(copyPrimitiveCommand);
+            if (!copyPrimitiveCommand.get(0).executeCommand()) {
                 return null;
             }
             try {
@@ -162,7 +162,7 @@ public class ConflateMatchCommand extends Command {
                         subjectObject.getDataSet().getPrimitiveById(referenceObject.getPrimitiveId()),
                         tagCollection));
             } finally {
-                copyPrimitiveCommand.undoCommand();
+                copyPrimitiveCommand.get(0).undoCommand();
             }
         } else {
             commands.add(buildReplaceGeometryCommand(subjectObject, referenceObject, tagCollection));
@@ -205,9 +205,14 @@ public class ConflateMatchCommand extends Command {
         return command;
     }
 
-    public static Command buildCopyPrimitiveCommand(OsmPrimitive referenceObject, OsmDataLayer layer) {
+    public static List<Command> buildCopyPrimitiveCommand(OsmPrimitive referenceObject, OsmDataLayer layer) {
         List<PrimitiveData> newObjects = ConflationUtils.copyObjects(referenceObject.getDataSet(), referenceObject);
-        return new AddPrimitivesCommand(newObjects, newObjects, layer);
+        List<Command> commands = new ArrayList<>(2);
+        // We don't want to fireSelectionChangedEvent as it would degrade performance if we batch many Conflate commands together.
+        // So we pass null as second argument to AddPrimitivesCommand, and select the new items ourself:
+        commands.add(new AddPrimitivesCommand(newObjects, null, layer));
+        commands.add(new SetSelectedCommand(layer.data, newObjects, false));
+        return commands;
     }
 
     /**

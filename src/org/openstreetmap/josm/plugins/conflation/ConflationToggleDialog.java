@@ -766,7 +766,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             Command cmd = new ConflateUnmatchedObjectCommand(settings.referenceLayer,
                     settings.subjectLayer, unmatchedObjects, referenceOnlyListModel);
             Main.main.undoRedo.add(cmd);
-            // TODO: change layer and select newly copied objects?
+            // TODO: change active layer to subject ?
         }
 
         private void conflateMatchActionPerformed() {
@@ -775,8 +775,10 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                     (match) -> new ConflateMatchCommand(match, matches, settings)).collect(Collectors.toList());
             if (cmds.size() == 1) {
                 Main.main.undoRedo.add(cmds.get(0));
+                settings.subjectDataSet.fireSelectionChanged();
             } else if (cmds.size() > 1) {
-                Command seqCmd = new StopOnErrorSequenceCommand(tr(marktr("Conflate {0} objects"), cmds.size()), cmds);
+                Command seqCmd = new StopOnErrorSequenceCommand(
+                        settings.subjectDataSet, tr(marktr("Conflate {0} objects"), cmds.size()), true, true, cmds);
                 Main.main.undoRedo.add(seqCmd);
             }
             if (matches.getSelected().isEmpty())
