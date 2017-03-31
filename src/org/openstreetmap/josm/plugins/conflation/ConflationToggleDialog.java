@@ -10,7 +10,6 @@ import java.awt.Dialog;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,12 +25,11 @@ import java.util.List;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -63,7 +61,6 @@ import org.openstreetmap.josm.data.osm.event.PrimitivesRemovedEvent;
 import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
 import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
 import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
-import org.openstreetmap.josm.gui.ExceptionDialogUtil;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
 import org.openstreetmap.josm.gui.PleaseWaitRunnable;
 import org.openstreetmap.josm.gui.SideButton;
@@ -84,7 +81,6 @@ import org.openstreetmap.josm.plugins.conflation.command.StopOnErrorSequenceComm
 import org.openstreetmap.josm.plugins.conflation.config.SettingsDialog;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
-import org.openstreetmap.josm.tools.bugreport.BugReportExceptionHandler;
 import org.xml.sax.SAXException;
 
 public class ConflationToggleDialog extends ToggleDialog
@@ -108,8 +104,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     final SideButton removeButton;
     final ZoomToListSelectionAction zoomToListSelectionAction;
     final SelectionPopup selectionPopup;
-
-    MatchListSelectionHandler m1, m2;
 
     // Keep track of conflation cases automatically removed (because of corresponding primitives removal),
     // to be able to restore them (in case of Undo)
@@ -148,12 +142,8 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         matchTable = new JTable(matchTableModel);
 
         // add selection handler, to center/zoom view
-        m1 = new MatchListSelectionHandler();
-        m2 = new MatchListSelectionHandler();
-        matchTable.getSelectionModel().addListSelectionListener(m1);
-        matchTable.getColumnModel().getSelectionModel().addListSelectionListener(m2);
+        matchTable.getSelectionModel().addListSelectionListener(new MatchListSelectionHandler());
 
-        // FIXME: doesn't work right now
         matchTable.getColumnModel().getColumn(0).setCellRenderer(new OsmPrimitivRenderer());
         matchTable.getColumnModel().getColumn(1).setCellRenderer(new OsmPrimitivRenderer());
         matchTable.getColumnModel().getColumn(4).setCellRenderer(new ColorTableCellRenderer("Tags"));
@@ -211,6 +201,8 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         removeButton = new SideButton(removeAction);
 
         // add listeners to update enable state of buttons
+        matchTable.getSelectionModel().addListSelectionListener(conflateAction);
+        matchTable.getSelectionModel().addListSelectionListener(removeAction);
         tabbedPane.addChangeListener(conflateAction);
         tabbedPane.addChangeListener(removeAction);
         referenceOnlyList.addListSelectionListener(conflateAction);
@@ -251,26 +243,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         updateTabTitles();
     }
 
-    @Override
-    public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
-        // adjust table selection to match match list selection
-        // FIXME: is this really where I should be doing this?
-
-        // selection is the same, don't do anything
-        Collection<SimpleMatch> tableSelection = getSelectedFromTable();
-        if (tableSelection.containsAll(selected) && tableSelection.size() == selected.size())
-            return;
-
-        ListSelectionModel lsm = matchTable.getSelectionModel();
-        lsm.setValueIsAdjusting(true);
-        lsm.clearSelection();
-        for (SimpleMatch c : selected) {
-            int idx = matches.indexOf(c);
-            lsm.addSelectionInterval(idx, idx);
-        }
-        lsm.setValueIsAdjusting(false);
-    }
-
     private void updateTabTitles() {
         tabbedPane.setTitleAt(
                 tabbedPane.indexOfComponent(matchTable.getParent().getParent()),
@@ -287,15 +259,21 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         return ((JScrollPane) tabbedPane.getSelectedComponent()).getViewport().getView();
     }
 
+    private Stream<SimpleMatch> getSelectedMatchesStream() {
+        return IntStream.of(matchTable.getSelectedRows()).map(matchTable::convertRowIndexToModel).mapToObj(matches::get);
+    }
+
+    private Collection<SimpleMatch> getSelectedMatches() {
+        return getSelectedMatchesStream().collect(Collectors.toList());
+    }
+
     private List<OsmPrimitive> getSelectedReferencePrimitives() {
         List<OsmPrimitive> selection = new ArrayList<>();
         if (tabbedPane == null || getSelectedTabComponent() == null)
             return selection;
 
         if (getSelectedTabComponent().equals(matchTable)) {
-            for (SimpleMatch c : matches.getSelected()) {
-                selection.add(c.getReferenceObject());
-            }
+            selection.addAll(getSelectedMatchesStream().map(SimpleMatch::getReferenceObject).collect(Collectors.toList()));
         } else if (getSelectedTabComponent().equals(referenceOnlyList)) {
             selection.addAll(referenceOnlyList.getSelectedValuesList());
         }
@@ -308,13 +286,26 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             return selection;
 
         if (getSelectedTabComponent().equals(matchTable)) {
-            for (SimpleMatch c : matches.getSelected()) {
-                selection.add(c.getSubjectObject());
-            }
+            selection.addAll(getSelectedMatchesStream().map(SimpleMatch::getSubjectObject).collect(Collectors.toList()));
         } else if (getSelectedTabComponent().equals(subjectOnlyList)) {
             selection.addAll(subjectOnlyList.getSelectedValuesList());
         }
         return selection;
+    }
+
+    private boolean isSelectionEmpty() {
+        if (tabbedPane == null || getSelectedTabComponent() == null)
+            return true;
+
+        if (getSelectedTabComponent().equals(matchTable)) {
+            return matchTable.getSelectedRow() < 0;
+        } else if (getSelectedTabComponent().equals(referenceOnlyList)) {
+            return referenceOnlyList.getSelectedIndex() < 0;
+        } else if (getSelectedTabComponent().equals(subjectOnlyList)) {
+            return subjectOnlyList.getSelectedIndex() < 0;
+        } else {
+            throw new AssertionError();
+        }
     }
 
     private Collection<OsmPrimitive> getAllSelectedPrimitives() {
@@ -434,13 +425,11 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         clearListsContentAndListeners();
         matches = matchList;
         matchTableModel.setMatches(matches, settings);
-        matches.addConflationListChangedListener(conflateAction);
-        matches.addConflationListChangedListener(removeAction);
         matches.addConflationListChangedListener(this);
         // add conflation layer
         try {
             if (conflationLayer == null) {
-                conflationLayer = new ConflationLayer(matches);
+                conflationLayer = new ConflationLayer(matches, (i) -> matchTable.isRowSelected(matchTable.convertRowIndexToView(i)));
             }
             if (!Main.getLayerManager().containsLayer(conflationLayer)) {
                 Main.getLayerManager().addLayer(conflationLayer);
@@ -546,53 +535,39 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    private Collection<SimpleMatch> getSelectedFromTable() {
-        ListSelectionModel lsm = matchTable.getSelectionModel();
-        Collection<SimpleMatch> selMatches = new HashSet<>();
-        for (int i = lsm.getMinSelectionIndex(); i <= lsm.getMaxSelectionIndex(); i++) {
-            if (lsm.isSelectedIndex(i) && (i < matches.size())) {
-                int modelIndex = matchTable.convertRowIndexToModel(i);
-                if (modelIndex < matches.size()) {
-                    selMatches.add(matches.get(modelIndex));
-                }
-            }
-        }
-        return selMatches;
-    }
-
-    protected static class ConflateMenuItem extends JMenuItem implements ActionListener {
-        public ConflateMenuItem(String name) {
-            super(name);
-            addActionListener(this); //TODO: is this needed?
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            //TODO: do something!
-        }
-    }
-
-    protected static class ConflatePopupMenu extends JPopupMenu {
-
-        public static void launch(Component parent) {
-            JPopupMenu menu = new ConflatePopupMenu();
-            Rectangle r = parent.getBounds();
-            menu.show(parent, r.x, r.y + r.height);
-        }
-
-        public ConflatePopupMenu() {
-            add(new ConflateMenuItem("Use reference geometry, reference tags"));
-            add(new ConflateMenuItem("Use reference geometry, subject tags"));
-            add(new ConflateMenuItem("Use subject geometry, reference tags"));
-        }
-    }
+    //    protected static class ConflateMenuItem extends JMenuItem implements ActionListener {
+    //        public ConflateMenuItem(String name) {
+    //            super(name);
+    //            addActionListener(this); //TODO: is this needed?
+    //        }
+    //
+    //        @Override
+    //        public void actionPerformed(ActionEvent e) {
+    //            //TODO: do something!
+    //        }
+    //    }
+    //
+    //    protected static class ConflatePopupMenu extends JPopupMenu {
+    //
+    //        public static void launch(Component parent) {
+    //            JPopupMenu menu = new ConflatePopupMenu();
+    //            Rectangle r = parent.getBounds();
+    //            menu.show(parent, r.x, r.y + r.height);
+    //        }
+    //
+    //        public ConflatePopupMenu() {
+    //            add(new ConflateMenuItem("Use reference geometry, reference tags"));
+    //            add(new ConflateMenuItem("Use reference geometry, subject tags"));
+    //            add(new ConflateMenuItem("Use subject geometry, reference tags"));
+    //        }
+    //    }
 
     class MatchListSelectionHandler implements ListSelectionListener {
-
         @Override
         public void valueChanged(ListSelectionEvent lse) {
-            matches.setSelected(getSelectedFromTable());
-            Main.map.mapView.repaint();
+            if ((conflationLayer != null) && !lse.getValueIsAdjusting()) {
+                Main.map.mapView.repaint();
+            }
         }
     }
 
@@ -631,20 +606,20 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
     }
 
-    public static class LayerListCellRenderer extends DefaultListCellRenderer {
-
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-                boolean cellHasFocus) {
-            Layer layer = (Layer) value;
-            JLabel label = (JLabel) super.getListCellRendererComponent(list, layer.getName(), index, isSelected,
-                    cellHasFocus);
-            Icon icon = layer.getIcon();
-            label.setIcon(icon);
-            label.setToolTipText(layer.getToolTipText());
-            return label;
-        }
-    }
+    //    public static class LayerListCellRenderer extends DefaultListCellRenderer {
+    //
+    //        @Override
+    //        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+    //                boolean cellHasFocus) {
+    //            Layer layer = (Layer) value;
+    //            JLabel label = (JLabel) super.getListCellRendererComponent(list, layer.getName(), index, isSelected,
+    //                    cellHasFocus);
+    //            Icon icon = layer.getIcon();
+    //            label.setIcon(icon);
+    //            label.setToolTipText(layer.getToolTipText());
+    //            return label;
+    //        }
+    //    }
 
     /**
      * Deactivate listener events while performing some batch actions.
@@ -658,6 +633,18 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         BatchAction(String name, String iconName, String tooltip, Shortcut shortcut, boolean registerInToolbar) {
             super(name, iconName, tooltip, shortcut, registerInToolbar);
+        }
+
+        @Override
+        public final void actionPerformed(ActionEvent e) {
+            saveSelection();
+            beginUpdate();
+            try {
+                actualActionPerformed(e);
+            } finally {
+                endUpdate();
+                restoreSelection();
+            }
         }
 
         public abstract void actualActionPerformed(ActionEvent e);
@@ -682,18 +669,26 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             subjectOnlyListModel.endUpdate();
         }
 
-        @Override
-        public final void actionPerformed(ActionEvent e) {
-            beginUpdate();
-            try {
-                actualActionPerformed(e);
-            } finally {
-                endUpdate();
+        private SimpleMatch nextMatchSelection;
+        private HashSet<SimpleMatch> oldMatchesSelection;
+
+        private void saveSelection() {
+            nextMatchSelection = getNextMatchToSelect();
+            oldMatchesSelection = new HashSet<>(getSelectedMatches());
+        }
+
+        private void restoreSelection() {
+            select(matchTable.getSelectionModel(), matches.size(),
+                    (i) -> oldMatchesSelection.contains(matches.get(matchTable.convertRowIndexToModel(i))));
+            if ((matchTable.getSelectedRow() < 0) && nextMatchSelection != null) {
+                // If there is no match selected, we select a new one
+                int index = matchTable.convertRowIndexToView(matches.indexOf(nextMatchSelection));
+                matchTable.setRowSelectionInterval(index, index);
             }
         }
     }
 
-    class RemoveAction extends BatchAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
+    class RemoveAction extends BatchAction implements ChangeListener, ListSelectionListener {
 
         RemoveAction() {
             super(tr("Remove"), "dialogs/delete", tr("Remove selected matches"),
@@ -705,10 +700,10 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             Component selComponent = getSelectedTabComponent();
             if (selComponent.equals(matchTable)) {
                 if ((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0) {
-                    Main.main.undoRedo.add(new MoveMatchToUnmatchedCommand(matches, matches.getSelected(),
+                    Main.main.undoRedo.add(new MoveMatchToUnmatchedCommand(matches, getSelectedMatches(),
                             referenceOnlyListModel, subjectOnlyListModel));
                 } else {
-                    Main.main.undoRedo.add(new RemoveMatchCommand(matches, matches.getSelected()));
+                    Main.main.undoRedo.add(new RemoveMatchCommand(matches, getSelectedMatches()));
                 }
             } else if (selComponent.equals(referenceOnlyList)) {
                 Main.main.undoRedo.add(
@@ -726,7 +721,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             Component selComponent = getSelectedTabComponent();
             int selSize = 0;
             if (selComponent.equals(matchTable)) {
-                selSize = matches.getSelected().size();
+                selSize = matchTable.getSelectedRowCount();
             } else if (selComponent.equals(referenceOnlyList)) {
                 selSize = referenceOnlyList.getSelectedValuesList().size();
             } else if (selComponent.equals(subjectOnlyList)) {
@@ -736,27 +731,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                 removeButton.setText((selSize > 1) ? tr(marktr("Remove ({0})"), selSize) : tr("Remove"));
             }
             setEnabled(selSize > 0);
-        }
-
-        /* ------------------------------------------------------------------------------ */
-        /* SimpleMatchListListener                                                        */
-        /* ------------------------------------------------------------------------------ */
-
-        @Override
-        public void simpleMatchListChanged(SimpleMatchList list) {
-        }
-
-        @Override
-        public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
-        }
-
-        @Override
-        public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
-        }
-
-        @Override
-        public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
-            updateEnabledState();
         }
 
         /* ------------------------------------------------------------------------------ */
@@ -774,12 +748,24 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void valueChanged(ListSelectionEvent lse) {
-            updateEnabledState();
+            if (!lse.getValueIsAdjusting()) {
+                updateEnabledState();
+            }
         }
 
     }
 
-    class ConflateAction extends BatchAction implements SimpleMatchListListener, ChangeListener, ListSelectionListener {
+    /**
+     * Get the next SimpleMatch to select when the selection will be empty.
+     * @return the next SimpleMatch to select.
+     */
+    private SimpleMatch getNextMatchToSelect() {
+        int index = matchTable.getSelectedRow() + 1;
+        while (index < matches.size() && matchTable.isRowSelected(index)) index++;
+        return (index >= 0 && index < matches.size()) ? matches.get(matchTable.convertRowIndexToModel(index)) : null;
+    }
+
+    class ConflateAction extends BatchAction implements ChangeListener, ListSelectionListener {
 
         ConflateAction() {
             // TODO: make sure shortcuts make sense
@@ -805,8 +791,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         private void conflateMatchActionPerformed() {
-            SimpleMatch nextSelection = matches.findNextSelection();
-            List<Command> cmds = matches.getSelected().stream().map(
+            List<Command> cmds = getSelectedMatchesStream().map(
                     (match) -> new ConflateMatchCommand(match, matches, settings)).collect(Collectors.toList());
             if (cmds.size() == 1) {
                 Main.main.undoRedo.add(cmds.get(0));
@@ -816,8 +801,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                         settings.subjectDataSet, tr(marktr("Conflate {0} objects"), cmds.size()), true, true, cmds);
                 Main.main.undoRedo.add(seqCmd);
             }
-            if (matches.getSelected().isEmpty())
-                matches.setSelected(nextSelection);
         }
 
         @Override
@@ -825,7 +808,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             Component selComponent = getSelectedTabComponent();
             int selSize = 0;
             if (selComponent.equals(matchTable)) {
-                selSize = matches.getSelected().size();
+                selSize = matchTable.getSelectedRowCount();
             } else if (selComponent.equals(referenceOnlyList)) {
                 selSize = referenceOnlyList.getSelectedValuesList().size();
             }
@@ -833,27 +816,6 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                 conflateButton.setText((selSize > 1) ? tr(marktr("Conflate ({0})"), selSize) : tr("Conflate"));
             }
             setEnabled(selSize > 0);
-        }
-
-        /* ------------------------------------------------------------------------------ */
-        /* SimpleMatchListListener                                                        */
-        /* ------------------------------------------------------------------------------ */
-
-        @Override
-        public void simpleMatchListChanged(SimpleMatchList list) {
-        }
-
-        @Override
-        public void simpleMatchListIntervalAdded(SimpleMatchList list, int index0, int index1) {
-        }
-
-        @Override
-        public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
-        }
-
-        @Override
-        public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
-            updateEnabledState();
         }
 
         /* ------------------------------------------------------------------------------ */
@@ -871,7 +833,9 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void valueChanged(ListSelectionEvent lse) {
-            updateEnabledState();
+            if (!lse.getValueIsAdjusting()) {
+                updateEnabledState();
+            }
         }
 
     }
@@ -900,12 +864,18 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void updateEnabledState() {
-            setEnabled(!getAllSelectedPrimitives().isEmpty());
+            setEnabled(!isSelectionEmpty());
         }
+
+        /* ------------------------------------------------------------------------------ */
+        /* ListSelectionListener                                                          */
+        /* ------------------------------------------------------------------------------ */
 
         @Override
         public void valueChanged(ListSelectionEvent lse) {
-            updateEnabledState();
+            if (!lse.getValueIsAdjusting()) {
+                updateEnabledState();
+            }
         }
     }
 
@@ -929,12 +899,18 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
         @Override
         public void updateEnabledState() {
-            setEnabled(!getAllSelectedPrimitives().isEmpty());
+            setEnabled(!isSelectionEmpty());
         }
+
+        /* ------------------------------------------------------------------------------ */
+        /* ListSelectionListener                                                                 */
+        /* ------------------------------------------------------------------------------ */
 
         @Override
         public void valueChanged(ListSelectionEvent lse) {
-            updateEnabledState();
+            if (!lse.getValueIsAdjusting()) {
+                updateEnabledState();
+            }
         }
     }
 
@@ -947,20 +923,21 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         public void launch(MouseEvent evt) {
             //if none selected, select row under cursor
             Component c = getSelectedTabComponent();
-            if (getAllSelectedPrimitives().isEmpty()) {
-                if (c == matchTable) {
-                    //FIXME: this doesn't seem to be working
-                    int row = matchTable.rowAtPoint(evt.getPoint());
-                    matchTable.getSelectionModel().addSelectionInterval(row, row);
-                } else if (c == subjectOnlyList || c == referenceOnlyList) {
-                    int idx = ((JList<?>) c).locationToIndex(evt.getPoint());
-                    if (idx < 0)
-                        return;
-                    ((JList<?>) c).setSelectedIndex(idx);
+            int rowIndex = -1;
+            if (c == matchTable) {
+                //FIXME: this doesn't seem to be working
+                rowIndex = matchTable.rowAtPoint(evt.getPoint());
+                if (rowIndex >= 0) {
+                    matchTable.addRowSelectionInterval(rowIndex, rowIndex);
                 }
+            } else if (c == subjectOnlyList || c == referenceOnlyList) {
+                rowIndex = ((JList<?>) c).locationToIndex(evt.getPoint());
+                if (rowIndex >= 0)
+                    ((JList<?>) c).addSelectionInterval(rowIndex, rowIndex);
             }
-
-            selectionPopup.show(c, evt.getX(), evt.getY());
+            if (rowIndex >= 0) {
+                selectionPopup.show(c, evt.getX(), evt.getY());
+            }
         }
     }
 

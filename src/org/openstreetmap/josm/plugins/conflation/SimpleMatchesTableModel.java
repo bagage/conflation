@@ -5,7 +5,6 @@ package org.openstreetmap.josm.plugins.conflation;
 import static org.openstreetmap.josm.tools.I18n.tr;
 
 import java.util.Arrays;
-import java.util.Collection;
 
 import javax.swing.table.AbstractTableModel;
 
@@ -119,10 +118,6 @@ class SimpleMatchesTableModel extends AbstractTableModel implements SimpleMatchL
     @Override
     public void simpleMatchListIntervalRemoved(SimpleMatchList list, int index0, int index1) {
         fireTableRowsDeleted(index0, index1);
-    }
-
-    @Override
-    public void simpleMatchSelectionChanged(Collection<SimpleMatch> selected) {
     }
 
 }
