@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.swing.DefaultListCellRenderer;
@@ -61,6 +63,7 @@ import org.openstreetmap.josm.data.osm.event.PrimitivesRemovedEvent;
 import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
 import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
 import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
+import org.openstreetmap.josm.gui.ExceptionDialogUtil;
 import org.openstreetmap.josm.gui.OsmPrimitivRenderer;
 import org.openstreetmap.josm.gui.PleaseWaitRunnable;
 import org.openstreetmap.josm.gui.SideButton;
@@ -81,6 +84,7 @@ import org.openstreetmap.josm.plugins.conflation.command.StopOnErrorSequenceComm
 import org.openstreetmap.josm.plugins.conflation.config.SettingsDialog;
 import org.openstreetmap.josm.tools.InputMapUtils;
 import org.openstreetmap.josm.tools.Shortcut;
+import org.openstreetmap.josm.tools.bugreport.BugReportExceptionHandler;
 import org.xml.sax.SAXException;
 
 public class ConflationToggleDialog extends ToggleDialog
@@ -460,20 +464,67 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
 
     @Override
     public void selectionChanged(Collection<? extends OsmPrimitive> newSelection) {
+        if (!isShowing() || (isDocked && isCollapsed)) return;
         if (newSelection.size() > 0) {
-            referenceOnlyList.getSelectionModel().clearSelection();
-            subjectOnlyList.getSelectionModel().clearSelection();
-            matchTable.getSelectionModel().clearSelection();
-            boolean ensureVisible = true;
-            for (OsmPrimitive item: newSelection) {
-                if (addObjectToSelection(item, ensureVisible)) {
-                    ensureVisible = false;
-                }
+            ListSelectionModel refOnlySelModel = referenceOnlyList.getSelectionModel();
+            ListSelectionModel subOnlySelModel = subjectOnlyList.getSelectionModel();
+            ListSelectionModel matchSelModel = matchTable.getSelectionModel();
+            if ((newSelection.size() <= 50) &&
+                    (matches.size() >= 400 || referenceOnlyListModel.getSize() >= 400 || subjectOnlyListModel.getSize() >= 400)) {
+                refOnlySelModel.setValueIsAdjusting(true);
+                refOnlySelModel.clearSelection();
+                subOnlySelModel.setValueIsAdjusting(true);
+                subOnlySelModel.clearSelection();
+                matchSelModel.setValueIsAdjusting(true);
+                matchSelModel.clearSelection();
+                newSelection.forEach(this::addPrimitiveToSelection);
+                refOnlySelModel.setValueIsAdjusting(false);
+                subOnlySelModel.setValueIsAdjusting(false);
+                matchSelModel.setValueIsAdjusting(false);
+            } else {
+                HashSet<OsmPrimitive> selectionSet = new HashSet<>(newSelection);
+                Predicate<SimpleMatch> isMatchSelected = (m) ->
+                    selectionSet.contains(m.getReferenceObject()) || selectionSet.contains(m.getSubjectObject());
+                select(matchSelModel, matches.size(), (i) -> isMatchSelected.test(matches.get(matchTable.convertRowIndexToModel(i))));
+                select(refOnlySelModel, referenceOnlyListModel.getSize(), (i) -> selectionSet.contains(referenceOnlyListModel.getElementAt(i)));
+                select(subOnlySelModel, subjectOnlyListModel.getSize(), (i) -> selectionSet.contains(subjectOnlyListModel.getElementAt(i)));
             }
+            if (matchSelModel.getMinSelectionIndex() >= 0) {
+                tabbedPane.setSelectedIndex(0);
+                matchTable.scrollRectToVisible(new Rectangle(matchTable.getCellRect(matchSelModel.getMinSelectionIndex(), 0, true)));
+            } else if (refOnlySelModel.getMinSelectionIndex() >= 0) {
+                tabbedPane.setSelectedIndex(1);
+            } else if (subOnlySelModel.getMinSelectionIndex() >= 0) {
+                tabbedPane.setSelectedIndex(2);
+            }
+            scrollListToSelected(referenceOnlyList);
+            scrollListToSelected(subjectOnlyList);
         }
     }
 
-    private boolean addObjectToSelection(OsmPrimitive object, boolean ensureVisible) {
+    private static void select(ListSelectionModel selectionModel, int size, IntPredicate predicate) {
+        selectionModel.setValueIsAdjusting(true);
+        selectionModel.clearSelection();
+        int i = 0;
+        while (i < size) {
+            while (i < size && !predicate.test(i)) i++;
+            if (i == size) break;
+            int j = i + 1;
+            while (j < size && predicate.test(j)) j++;
+            selectionModel.addSelectionInterval(i, j - 1);
+            i = j + 1;
+        }
+        selectionModel.setValueIsAdjusting(false);
+    }
+
+    private static void scrollListToSelected(JList<?> jlist) {
+        ListSelectionModel selectionModel = jlist.getSelectionModel();
+        int index = selectionModel.getMinSelectionIndex();
+        if (index >= 0)
+            jlist.ensureIndexIsVisible(index);
+    }
+
+    private void addPrimitiveToSelection(OsmPrimitive object) {
         SimpleMatch c = matches.getMatchByReference(object);
         if (c == null) {
             c = matches.getMatchBySubject(object);
@@ -483,32 +534,16 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
             if (index >= 0) {
                 index = matchTable.convertRowIndexToView(index);
                 matchTable.getSelectionModel().addSelectionInterval(index, index);
-                if (ensureVisible) {
-                    tabbedPane.setSelectedIndex(0);
-                    matchTable.scrollRectToVisible(new Rectangle(matchTable.getCellRect(index, 0, true)));
-                }
-                return true;
             }
         }
         int index = referenceOnlyListModel.indexOf(object);
         if (index >= 0) {
             referenceOnlyList.getSelectionModel().addSelectionInterval(index, index);
-            if (ensureVisible) {
-                tabbedPane.setSelectedIndex(1);
-                referenceOnlyList.ensureIndexIsVisible(index);
-            }
-            return true;
         }
         index = subjectOnlyListModel.indexOf(object);
         if (index >= 0) {
             subjectOnlyList.getSelectionModel().addSelectionInterval(index, index);
-            if (ensureVisible) {
-                tabbedPane.setSelectedIndex(2);
-                subjectOnlyList.ensureIndexIsVisible(index);
-            }
-            return true;
         }
-        return false;
     }
 
     private Collection<SimpleMatch> getSelectedFromTable() {
