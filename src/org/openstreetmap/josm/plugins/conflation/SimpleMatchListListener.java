@@ -2,8 +2,6 @@
 // Copyright 2012 by Josh Doe and others.
 package org.openstreetmap.josm.plugins.conflation;
 
-import java.util.Collection;
-
 public interface SimpleMatchListListener {
 
     /**
@@ -27,10 +25,4 @@ public interface SimpleMatchListListener {
      */
     void simpleMatchListIntervalRemoved(SimpleMatchList list, int firstRow, int lastRow);
 
-    /**
-     * Informs the listener that the conflation list selection has changed.
-     * 
-     * @param selected The newly selected conflation match.
-     */
-    void simpleMatchSelectionChanged(Collection<SimpleMatch> selected);
 }

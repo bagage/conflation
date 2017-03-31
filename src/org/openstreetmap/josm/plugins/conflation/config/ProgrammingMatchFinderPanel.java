@@ -31,9 +31,9 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
             "\tBasic(\n" +
             "\t\tChain(\n" +
             "\t\t\tWindow( 20 ),\n" +
-            "\t\t\tHausdorffDistance( 20 ),\n" +
-            "\t\t\tIdenticalFilter)\n" +
-            "))\n";
+            "\t\t\tHausdorffDistance( 20 )\n" +
+            //"\t\t\t, IdenticalFilter)\n" +
+            ")))\n";
 
     private static final String ADVANCED_EXAMPLE =
             "AreaFilter ( 0.0, 9E6, \n" +

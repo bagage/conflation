@@ -720,7 +720,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
                 Main.pref.getDouble(getClass().getName() + ".levenshteinTagsWeightField", 50.0)));
         exactTagsField.setText(Main.pref.get(getClass().getName() + ".exactTagsField", ""));
         levenshteinTagsField.setText(Main.pref.get(getClass().getName() + ".levenshteinTagsField", ""));
-        identicalCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".identicalCheckBox", true));
+        identicalCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".identicalCheckBox", false));
 
     }
 

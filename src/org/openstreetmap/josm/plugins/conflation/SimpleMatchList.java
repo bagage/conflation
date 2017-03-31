@@ -19,14 +19,12 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     private final CopyOnWriteArrayList<SimpleMatchListListener> listeners = new CopyOnWriteArrayList<>();
 
     private final ArrayList<SimpleMatch> matches = new ArrayList<>();
-    private final HashSet<SimpleMatch> selected = new HashSet<>();
 
     private final HashMap<OsmPrimitive, SimpleMatch> byReference = new HashMap<>();
     private final HashMap<OsmPrimitive, SimpleMatch> bySubject = new HashMap<>();
 
     private int updateCount = 0;
-    private boolean updateHasChangedList = false;
-    private boolean updateHasChangedSelection = false;
+    private boolean updateHasChanged = false;
 
     public SimpleMatchList() {
     }
@@ -113,7 +111,6 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
      */
     public void clear() {
         if (matches.size() > 0) {
-            setSelected(new ArrayList<SimpleMatch>());
             matches.clear();
             byReference.clear();
             bySubject.clear();
@@ -125,34 +122,7 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
         return removeAll(Collections.singleton(c));
     }
 
-    public SimpleMatch findNextSelection() {
-
-        // FIXME: The SimpleMatchesTableModel can be sorted,
-        // so the next selection computed here may
-        // not be the next one the displayed list as expected.
-
-        if (selected.size() == matches.size()) {
-            // special case (all elements selected because of Cntrl-A)
-            // that would take a lot of time to compute otherwise
-            return null;
-        }
-        int min = selected.stream().map(s -> matches.indexOf(s)).min(Integer::compare).orElse(-1);
-        int index = min + 1;
-        while ((index < matches.size()) && selected.contains(matches.get(index))) index++;
-        if (index < matches.size()) {
-            return matches.get(index);
-        } else if (min > 0) {
-            return matches.get(min - 1);
-        } else {
-            return null;
-        }
-
-    }
-
     public boolean removeAll(Collection<SimpleMatch> matchesToRemove) {
-        // find next to select if entire selection is removed
-        SimpleMatch next = findNextSelection();
-
         boolean isChanged = false;
         Set<Integer> removedIdx = new HashSet<>();
         int maxSize = matches.size();
@@ -179,16 +149,6 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
             }
             fireIntervalRemoved(startRange, i-1);
         }
-
-
-        if (selected.removeAll(matchesToRemove)) {
-
-            if (selected.isEmpty() && next != null)
-                selected.add(next);
-
-            fireSelectionChanged();
-        }
-
         return isChanged;
     }
 
@@ -205,67 +165,29 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     }
 
     public void fireListChanged() {
-        if (!shouldFireListEvent()) return;
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListChanged(this);
         }
     }
 
-    public void fireSelectionChanged() {
-        if (!shouldFireSelectionEvent()) return;
-        for (SimpleMatchListListener l : listeners) {
-            l.simpleMatchSelectionChanged(selected);
-        }
-    }
-
     public void fireIntervalAdded(int index0, int index1) {
-        if (!shouldFireListEvent()) return;
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalAdded(this, index0, index1);
         }
     }
 
     public void fireIntervalRemoved(int index0, int index1) {
-        if (!shouldFireListEvent()) return;
+        if (!shouldFireEvent()) return;
         for (SimpleMatchListListener l : listeners) {
             l.simpleMatchListIntervalRemoved(this, index0, index1);
         }
     }
 
-    public Collection<SimpleMatch> getSelected() {
-        return selected;
-    }
-
-    /**
-     * Set which {@see SimpleMatch} is currently selected. Set to null to clear selection.
-     */
-    public void setSelected(SimpleMatch match) {
-        if (match != null)
-            setSelected(Collections.singleton(match));
-        else
-            setSelected(new ArrayList<SimpleMatch>());
-    }
-
-    public void setSelected(Collection<SimpleMatch> matches) {
-        if (selected.containsAll(matches) && selected.size() == matches.size())
-            return;
-
-        selected.clear();
-        selected.addAll(matches);
-        fireSelectionChanged();
-    }
-
-    protected boolean shouldFireListEvent() {
+    protected boolean shouldFireEvent() {
         if (updateCount > 0) {
-            updateHasChangedList = true;
-            return false;
-        }
-        return true;
-    }
-
-    protected boolean shouldFireSelectionEvent() {
-        if (updateCount > 0) {
-            updateHasChangedSelection = true;
+            updateHasChanged = true;
             return false;
         }
         return true;
@@ -281,15 +203,9 @@ public class SimpleMatchList implements Iterable<SimpleMatch> {
     public void endUpdate() {
         if (updateCount > 0) {
             updateCount--;
-            if (updateCount == 0) {
-                if (updateHasChangedList) {
-                    updateHasChangedList = false;
-                    fireListChanged();
-                }
-                if (updateHasChangedSelection) {
-                    updateHasChangedSelection = false;
-                    fireSelectionChanged();
-                }
+            if (updateCount == 0 && updateHasChanged) {
+                updateHasChanged = false;
+                fireListChanged();
             }
         } else {
             throw new AssertionError("endUpdate called without beginUpdate");

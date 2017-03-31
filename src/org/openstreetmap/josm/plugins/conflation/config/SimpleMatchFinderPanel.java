@@ -123,7 +123,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
             WeightedMatcher weightedMatcher = new WeightedMatcher(weightedArgs.toArray());
             matchers.add(weightedMatcher);
         }
-        matchers.add(new IdenticalFeatureFilter());
+        //matchers.add(new IdenticalFeatureFilter()); give strange results if activated
         ChainMatcher chain = new ChainMatcher(matchers.toArray(new FeatureMatcher[matchers.size()]));
         BasicFCMatchFinder basicFinder = new BasicFCMatchFinder(chain);
         FCMatchFinder finder = (methodCombeBox.getSelectedIndex() == 0) ?

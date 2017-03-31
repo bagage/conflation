@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.gui.progress.ProgressMonitor;
 import org.openstreetmap.josm.plugins.jts.JTSConverter;
 
@@ -113,7 +114,9 @@ public final class MatchesComputation {
         //TODO: use factory instead of passing converter
         JTSConverter converter = new JTSConverter(true);
         for (OsmPrimitive prim : prims) {
-            dataset.add(new OsmFeature(prim, converter));
+            // Relations not supported yet
+            if (!(prim instanceof Relation))
+                dataset.add(new OsmFeature(prim, converter));
         }
         return dataset;
     }

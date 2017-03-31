@@ -615,6 +615,7 @@ public class SettingsDialog extends ExtendedDialog {
         int numNodes = 0;
         int numWays = 0;
         int numRelations = 0;
+        int totalRelations = 0;
 
         // if subject and reference sets are the same, hint user that this must be wrong
         if (subjectLayer != null && subjectLayer == referenceLayer && !subjectSelection.isEmpty()) {
@@ -653,6 +654,7 @@ public class SettingsDialog extends ExtendedDialog {
             nbSubjectRelationsLabel.setText("0");
             restoreSubjectButton.setEnabled(false);
         }
+        totalRelations += numRelations;
         numNodes = 0;
         numWays = 0;
         numRelations = 0;
@@ -692,6 +694,12 @@ public class SettingsDialog extends ExtendedDialog {
             nbReferenceWaysLabel.setText("0");
             nbReferenceRelationsLabel.setText("0");
             restoreReferenceButton.setEnabled(false);
+        }
+        totalRelations += numRelations;
+        if (totalRelations != 0) {
+            JOptionPane.showMessageDialog(Main.parent,
+                    tr("Relations are not supported yet, please do not select them."), tr("Error"),
+                    JOptionPane.ERROR_MESSAGE);
         }
         updateFreezeButtons();
     }

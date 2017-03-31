@@ -10,6 +10,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.GeneralPath;
 import java.util.Iterator;
+import java.util.function.IntPredicate;
 
 import javax.swing.Action;
 import javax.swing.Icon;
@@ -27,19 +28,17 @@ import org.openstreetmap.josm.tools.ImageProvider;
 
 /**
  * A layer to show arrows and other symbols to indicate what primitives have been matched.
- * TODO: warn on closing layer?
  * @author joshdoe
  */
 public class ConflationLayer extends Layer {
-    protected SimpleMatchList matches;
 
-    public ConflationLayer(SimpleMatchList matches) {
+    protected SimpleMatchList matches;
+    protected IntPredicate isMatchSelected;;
+
+    public ConflationLayer(SimpleMatchList matches, IntPredicate isMatchelected) {
         super(tr("Conflation"));
         this.matches = matches;
-    }
-
-    public ConflationLayer() {
-        this(null);
+        this.isMatchSelected = isMatchelected;
     }
 
     /**
@@ -54,9 +53,10 @@ public class ConflationLayer extends Layer {
         final double PHI = Math.toRadians(20);
         final double cosPHI = Math.cos(PHI);
         final double sinPHI = Math.sin(PHI);
-        for (Iterator<SimpleMatch> it = this.matches.iterator(); it.hasNext();) {
-            SimpleMatch match = it.next();
-            if (matches.getSelected().contains(match)) {
+        int size = matches.size();
+        for (int i = 0; i < size; i++) {
+            SimpleMatch match = matches.get(i);
+            if (isMatchSelected.test(i)) {
                 g2.setColor(Color.blue);
             } else {
                 g2.setColor(Color.cyan);
