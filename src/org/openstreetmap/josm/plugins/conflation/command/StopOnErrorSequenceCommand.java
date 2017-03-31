@@ -14,6 +14,7 @@ import javax.swing.Icon;
 
 import org.openstreetmap.josm.command.Command;
 import org.openstreetmap.josm.command.PseudoCommand;
+import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.tools.ImageProvider;
 
@@ -26,33 +27,52 @@ public class StopOnErrorSequenceCommand extends Command {
 
     protected final String name;
     protected final Command[] sequence;
+    protected final HashSet<OsmPrimitive> selection;
+    protected final boolean fireSelectionChangedEvent;
     protected int nbToExecute;
 
-    public StopOnErrorSequenceCommand(String name, Command... sequenz) {
-        this(name, sequenz.clone(), sequenz.length);
+    public StopOnErrorSequenceCommand(DataSet data, String name,
+            boolean combineSelection, boolean fireSelectionChangedEvent,
+            Command... sequenz) {
+        this(data, name, combineSelection, fireSelectionChangedEvent, sequenz.clone(), sequenz.length);
     }
 
-    public StopOnErrorSequenceCommand(String name, Collection<Command> sequenz) {
-        this(name, sequenz.toArray(new Command[sequenz.size()]), sequenz.size());
+    public StopOnErrorSequenceCommand(DataSet data, String name,
+            boolean combineSelection, boolean fireSelectionChangedEvent,
+            Collection<Command> sequenz) {
+        this(data, name, combineSelection, fireSelectionChangedEvent, sequenz.toArray(new Command[sequenz.size()]), sequenz.size());
     }
 
-    private StopOnErrorSequenceCommand(String name, Command[] sequence, int nbToExecute) {
+    private StopOnErrorSequenceCommand(DataSet data, String name,
+            boolean combineSelection, boolean fireSelectionChangedEvent,
+            Command[] sequence, int nbToExecute) {
+        super(data);
         this.name = name;
         this.sequence = sequence;
         this.nbToExecute = nbToExecute;
+        this.selection = combineSelection ? new HashSet<>() : null;
+        this.fireSelectionChangedEvent = fireSelectionChangedEvent;
     }
 
     @Override public boolean executeCommand() {
         // REM: in case of redo we should never execute more commands that in the first execution
+        if (selection != null)
+            selection.clear();
         int count = 0;
         try {
-            while ((count < nbToExecute) && sequence[count].executeCommand()) count++;
+            while ((count < nbToExecute) && sequence[count].executeCommand()) {
+                count++;
+                if (selection != null)
+                    selection.addAll(getAffectedDataSet().getSelected());
+            }
         } catch (RuntimeException e) {
             nbToExecute = count;
             undoCommand(); // undo up to nbToExecute
             nbToExecute = 0;
             throw e;
         }
+        if (selection != null && !selection.isEmpty())
+            getAffectedDataSet().setSelected(selection, fireSelectionChangedEvent);
         nbToExecute = count;
         return count > 0;
     }

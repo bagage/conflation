@@ -42,6 +42,7 @@ import com.vividsolutions.jcs.conflate.polygonmatch.DisambiguatingFCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.FeatureMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.HausdorffDistanceMatcher;
+import com.vividsolutions.jcs.conflate.polygonmatch.IdenticalFeatureFilter;
 import com.vividsolutions.jcs.conflate.polygonmatch.SymDiffMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.TargetUnioningFCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.WeightedMatcher;
@@ -150,6 +151,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
     private JLabel levenshteinTagsLabel = new JLabel();
     private DefaultPromptTextField exactTagsField = new DefaultPromptTextField(15, tr("none"));
     private DefaultPromptTextField levenshteinTagsField = new DefaultPromptTextField(15, tr("none"));
+    private JCheckBox identicalCheckBox = new JCheckBox("", true);
 
     public AdvancedMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
         super();
@@ -311,7 +313,8 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         levenshteinTagsLabel.setText(tr("Tags (Levenshtein Distance): "));
         levenshteinTagsField.setToolTipText(tr("List of tags to match"));
         exactTagsField.setToolTipText(tr("List of tags to match"));
-
+        identicalCheckBox.setText(tr("Identical Elements Filter"));
+        identicalCheckBox.setToolTipText(tr("Avoid matching an element with itself"));
 
         filterByAreaTextArea.setEnabled(false);
         filterByAreaTextArea.setBorder(null);
@@ -403,8 +406,12 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
             new GridBagConstraints(0, 10, 10, 1, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                 new Insets(10, 4, 4, 4), 0, 0));
+        filteringTab.add(identicalCheckBox,
+            new GridBagConstraints(1, 3, 1, 1, 0.0, 0.0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0), 0, 0));
         filteringTab.add(filterByAreaTextArea,
-            new GridBagConstraints(1, 10, 2, 1, 1.0, 1.0,
+            new GridBagConstraints(1, 10, 2, 2, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH,
                 new Insets(10, 4, 4, 4), 0, 0));
         matchingTab.add(stdDistanceCheckBox,
@@ -619,6 +626,9 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
             chainArgs.add(new AttributeMatcher(tag, ExactValueMatcher.INSTANCE));
         }
         chainArgs.add(new WeightedMatcher(weightedArgs.toArray()));
+        if (identicalCheckBox.isSelected()) {
+            chainArgs.add(new IdenticalFeatureFilter());
+        }
         return new ChainMatcher(chainArgs.toArray(new FeatureMatcher[chainArgs.size()]));
     }
 
@@ -673,6 +683,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         Main.pref.putDouble(getClass().getName() + ".levenshteinTagsWeightField", levenshteinTagsWeightField.getDouble());
         Main.pref.put(getClass().getName() + ".exactTagsField", exactTagsField.getText());
         Main.pref.put(getClass().getName() + ".levenshteinTagsField", levenshteinTagsField.getText());
+        Main.pref.put(getClass().getName() + ".identicalCheckBox", identicalCheckBox.isSelected());
     }
 
     public void restoreFromPreferences() {
@@ -709,6 +720,8 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
                 Main.pref.getDouble(getClass().getName() + ".levenshteinTagsWeightField", 50.0)));
         exactTagsField.setText(Main.pref.get(getClass().getName() + ".exactTagsField", ""));
         levenshteinTagsField.setText(Main.pref.get(getClass().getName() + ".levenshteinTagsField", ""));
+        identicalCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".identicalCheckBox", true));
+
     }
 
 }

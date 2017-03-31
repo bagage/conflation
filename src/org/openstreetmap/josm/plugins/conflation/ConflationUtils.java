@@ -31,12 +31,12 @@ public final class ConflationUtils {
     public static List<PrimitiveData> copyObjects(DataSet sourceDataSet, Collection<OsmPrimitive> primitives) {
 
         Collection<OsmPrimitive> origSelection = sourceDataSet.getSelected();
-        sourceDataSet.setSelected(primitives);
+        sourceDataSet.setSelected(primitives, false);
         MergeSourceBuildingVisitor builder = new MergeSourceBuildingVisitor(sourceDataSet);
 
         DataSet newDataSet = builder.build();
         //restore selection
-        sourceDataSet.setSelected(origSelection);
+        sourceDataSet.setSelected(origSelection, false);
 
         return newDataSet.allPrimitives().stream()
                 .map(p -> p.save())
