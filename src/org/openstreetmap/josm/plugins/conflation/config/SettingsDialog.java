@@ -87,6 +87,7 @@ public class SettingsDialog extends ExtendedDialog {
     private JCheckBox mergeTagsCheckBox;
     private JCheckBox mergeAllCheckBox;
     private DefaultPromptTextField mergeTagsField;
+    private DefaultPromptTextField mergeTagsExceptField;
     private JCheckBox overwriteTagsCheckbox; // may be null
     private DefaultPromptTextField overwriteTagsField; // may be null
     private AutoCompletionList referenceTagsAutoCompletionList = new AutoCompletionList();
@@ -350,8 +351,11 @@ public class SettingsDialog extends ExtendedDialog {
         mergeTagsCheckBox = new JCheckBox(tr("Merge Tags"));
         mergeAllCheckBox = new JCheckBox(tr("All"));
         mergeTagsField = new DefaultPromptTextField(20, "");
-        mergeTagsField.setToolTipText(tr("List of tags to merge"));
+        mergeTagsField.setHint(tr("List of tags to merge"));
         mergeTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
+        mergeTagsExceptField = new DefaultPromptTextField(20, "");
+        mergeTagsExceptField.setHint(tr("List of tags to NOT merge"));
+        mergeTagsExceptField.setAutoCompletionList(referenceTagsAutoCompletionList);
         if (ExpertToggleAction.isExpert()) {
             overwriteTagsCheckbox = new JCheckBox(tr("Overwrite tags without confirmation"));
             overwriteTagsField = new DefaultPromptTextField(20, tr("none"));
@@ -369,8 +373,10 @@ public class SettingsDialog extends ExtendedDialog {
             public void actionPerformed(ActionEvent e) {
                 mergeAllCheckBox.setEnabled(mergeTagsCheckBox.isSelected());
                 mergeTagsField.setEnabled(mergeTagsCheckBox.isSelected());
+                mergeTagsExceptField.setEnabled(mergeTagsCheckBox.isSelected());
                 if (mergeTagsCheckBox.isSelected()) {
                     mergeTagsField.setText("");
+                    mergeTagsExceptField.setText("");
                     mergeAllCheckBox.setSelected(true);
                 }
             } });
@@ -379,25 +385,34 @@ public class SettingsDialog extends ExtendedDialog {
             public void actionPerformed(ActionEvent e) {
                 if (mergeAllCheckBox.isSelected()) {
                     mergeTagsField.setText("");
+                    mergeTagsExceptField.setText("");
                 }
             }
         });
-        mergeTagsField.getDocument().addDocumentListener(new DocumentListener() {
+        DocumentListener documentListener = new DocumentListener() {
+            private void checkMergeAllCheckBox() {
+                boolean noTags = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty();
+                boolean noExceptTags = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsExceptField.getText()).isEmpty();
+                mergeAllCheckBox.setSelected(noTags && noExceptTags);
+            }
             @Override
             public void insertUpdate(DocumentEvent e) {
-                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+                checkMergeAllCheckBox();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+                checkMergeAllCheckBox();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                mergeAllCheckBox.setSelected(SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText()).isEmpty());
+                checkMergeAllCheckBox();
             }
-        });
+        };
+
+        mergeTagsField.getDocument().addDocumentListener(documentListener);
+        mergeTagsExceptField.getDocument().addDocumentListener(documentListener);
 
         GroupLayout layout = new GroupLayout(panel);
         panel.setLayout(layout);
@@ -407,13 +422,16 @@ public class SettingsDialog extends ExtendedDialog {
                         .addComponent(mergeTagsCheckBox)
                         .addComponent(mergeAllCheckBox)
                         .addComponent(mergeTagsField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
+                        .addComponent(mergeTagsExceptField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE));
         SequentialGroup verticalGroup = layout.createSequentialGroup()
                 .addComponent(replaceGeometryCheckBox)
                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                     .addComponent(mergeTagsCheckBox)
                     .addComponent(mergeAllCheckBox)
-                    .addComponent(mergeTagsField));
+                    .addComponent(mergeTagsField)
+                    .addComponent(mergeTagsExceptField));
         if (ExpertToggleAction.isExpert()) {
             horizonatGroup.addGroup(layout.createSequentialGroup()
                     .addComponent(overwriteTagsCheckbox)
@@ -467,11 +485,15 @@ public class SettingsDialog extends ExtendedDialog {
         settings.matchFinder = getSelectedMatchFinderPanel().getMatchFinder();
         settings.isReplacingGeometry = replaceGeometryCheckBox.isSelected();
         if (mergeTagsCheckBox.isSelected()) {
-            List<String> tagList = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText());
-            if (mergeAllCheckBox.isSelected() || tagList.isEmpty()) {
-                settings.mergeTags = SimpleMatchSettings.ALL;
+            List<String> tagsList = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsField.getText());
+            List<String> tagsExceptList = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsExceptField.getText());
+            if (!tagsList.isEmpty()) {
+                settings.mergeTags = tagsList;
             } else {
-                settings.mergeTags = tagList;
+                settings.mergeTags = SimpleMatchSettings.ALL;
+            }
+            if (!tagsExceptList.isEmpty()) {
+                settings.mergeTags.removeAll(tagsExceptList);
             }
         } else {
             settings.mergeTags = new ArrayList<>(0);
@@ -498,6 +520,7 @@ public class SettingsDialog extends ExtendedDialog {
         Main.pref.put(getClass().getName() + ".mergeTagsCheckBox", mergeTagsCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".mergeAllCheckBox", mergeAllCheckBox.isSelected());
         Main.pref.put(getClass().getName() + ".mergeTagsField", mergeTagsField.getText());
+        Main.pref.put(getClass().getName() + ".mergeTagsExceptField", mergeTagsExceptField.getText());
         if (overwriteTagsCheckbox != null) {
             Main.pref.put(getClass().getName() + ".overwriteTagsCheckbox", overwriteTagsCheckbox.isSelected());
             Main.pref.put(getClass().getName() + ".overwriteTagsField", overwriteTagsField.getText());
@@ -512,6 +535,7 @@ public class SettingsDialog extends ExtendedDialog {
         }
         replaceGeometryCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".replaceGeometryCheckBox", true));
         mergeTagsField.setText(Main.pref.get(getClass().getName() + ".mergeTagsField", ""));
+        mergeTagsExceptField.setText(Main.pref.get(getClass().getName() + ".mergeTagsExceptField", ""));
         mergeAllCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".mergeAllCheckBox", true));
         mergeTagsCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".mergeTagsCheckBox", true));
         if (overwriteTagsCheckbox != null) {
@@ -619,7 +643,7 @@ public class SettingsDialog extends ExtendedDialog {
 
         // if subject and reference sets are the same, hint user that this must be wrong
         if (subjectLayer != null && subjectLayer == referenceLayer && !subjectSelection.isEmpty()) {
-            boolean identicalSet = (subjectSelection.size() == referenceSelection.size() 
+            boolean identicalSet = (subjectSelection.size() == referenceSelection.size()
                     && new HashSet<>(subjectSelection).containsAll(referenceSelection));
             if (identicalSet) {
                 JOptionPane.showMessageDialog(Main.parent,
