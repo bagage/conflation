@@ -88,6 +88,7 @@ public class SettingsDialog extends ExtendedDialog {
     private JCheckBox mergeAllCheckBox;
     private DefaultPromptTextField mergeTagsField;
     private DefaultPromptTextField mergeTagsExceptField;
+    private JLabel mergeTagsExceptLabel;
     private JCheckBox overwriteTagsCheckbox; // may be null
     private DefaultPromptTextField overwriteTagsField; // may be null
     private AutoCompletionList referenceTagsAutoCompletionList = new AutoCompletionList();
@@ -352,6 +353,7 @@ public class SettingsDialog extends ExtendedDialog {
         mergeAllCheckBox = new JCheckBox(tr("All"));
         mergeTagsField = new DefaultPromptTextField(20, tr("List of tags to merge"));
         mergeTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
+        mergeTagsExceptLabel = new JLabel(tr("except"));
         mergeTagsExceptField = new DefaultPromptTextField(20, tr("List of tags to NOT merge"));
         mergeTagsExceptField.setAutoCompletionList(referenceTagsAutoCompletionList);
         if (ExpertToggleAction.isExpert()) {
@@ -371,6 +373,7 @@ public class SettingsDialog extends ExtendedDialog {
             public void actionPerformed(ActionEvent e) {
                 mergeAllCheckBox.setEnabled(mergeTagsCheckBox.isSelected());
                 mergeTagsField.setEnabled(mergeTagsCheckBox.isSelected());
+                mergeTagsExceptLabel.setEnabled(mergeTagsCheckBox.isSelected());
                 mergeTagsExceptField.setEnabled(mergeTagsCheckBox.isSelected());
                 if (mergeTagsCheckBox.isSelected()) {
                     mergeTagsField.setText("");
@@ -393,6 +396,7 @@ public class SettingsDialog extends ExtendedDialog {
                 boolean noExceptTags = SimpleMatchFinderPanel.splitBySpaceComaOrSemicolon(mergeTagsExceptField.getText()).isEmpty();
                 mergeAllCheckBox.setSelected(noTags && noExceptTags);
             }
+
             @Override
             public void insertUpdate(DocumentEvent e) {
                 checkMergeAllCheckBox();
@@ -419,10 +423,13 @@ public class SettingsDialog extends ExtendedDialog {
                 .addGroup(layout.createSequentialGroup()
                         .addComponent(mergeTagsCheckBox)
                         .addComponent(mergeAllCheckBox)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 3, 3)
                         .addComponent(mergeTagsField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 2, 2)
+                        .addComponent(mergeTagsExceptLabel)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 2, 2)
                         .addComponent(mergeTagsExceptField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 0, Short.MAX_VALUE)
         );
         SequentialGroup verticalGroup = layout.createSequentialGroup()
                 .addComponent(replaceGeometryCheckBox)
@@ -430,6 +437,7 @@ public class SettingsDialog extends ExtendedDialog {
                     .addComponent(mergeTagsCheckBox)
                     .addComponent(mergeAllCheckBox)
                     .addComponent(mergeTagsField)
+                    .addComponent(mergeTagsExceptLabel)
                     .addComponent(mergeTagsExceptField));
         if (ExpertToggleAction.isExpert()) {
             horizonatGroup.addGroup(layout.createSequentialGroup()
@@ -489,7 +497,7 @@ public class SettingsDialog extends ExtendedDialog {
             if (!tagsList.isEmpty()) {
                 settings.mergeTags = tagsList;
             } else {
-                settings.mergeTags = SimpleMatchSettings.ALL;
+                settings.mergeTags = new SimpleMatchSettings.All<>();
             }
             if (!tagsExceptList.isEmpty()) {
                 settings.mergeTags.removeAll(tagsExceptList);

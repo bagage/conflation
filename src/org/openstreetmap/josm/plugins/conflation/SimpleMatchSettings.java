@@ -4,8 +4,8 @@ package org.openstreetmap.josm.plugins.conflation;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class SimpleMatchSettings {
 
     /**
      * List of tags to merge during conflation.
-     * Should be set to the {@link ALL} constant to mean all tags.
+     * Should be set to the {@link All} constant to mean all tags.
      */
     public Collection<String> mergeTags;
 
@@ -48,8 +48,9 @@ public class SimpleMatchSettings {
     /**
      * A Collection that always answer true when asked if it contains any object (except for the removed items!).
      */
-    public static final Collection<String> ALL = new Collection<String>() {
-        List<Object> ignoredItems = new ArrayList<>();
+    public static class All<E> implements Collection<E> {
+
+        private HashSet<Object> removedItems = new HashSet<>();
 
         @Override public int size() {
             return Integer.MAX_VALUE; }
@@ -58,12 +59,12 @@ public class SimpleMatchSettings {
             return false; }
 
         @Override public boolean contains(Object o) {
-            return !ignoredItems.contains(o); }
+            return !removedItems.contains(o); }
 
         @Override public boolean containsAll(Collection<?> c) {
-            return !ignoredItems.containsAll(c); }
+            return !c.stream().anyMatch(removedItems::contains); }
 
-        @Override public Iterator<String> iterator() {
+        @Override public Iterator<E> iterator() {
             throw new UnsupportedOperationException(); }
 
         @Override public Object[] toArray() {
@@ -72,19 +73,18 @@ public class SimpleMatchSettings {
         @Override public <T> T[] toArray(T[] a) {
             throw new UnsupportedOperationException(); }
 
-        @Override public boolean add(String e) {
-            throw new UnsupportedOperationException(); }
+        @Override public boolean add(E e) {
+            return removedItems.remove(e); }
 
         @Override public boolean remove(Object o) {
-            ignoredItems.add((String)o);
-            return true;
+            return removedItems.add(o);
         }
 
-        @Override public boolean addAll(Collection<? extends String> c) {
-            throw new UnsupportedOperationException(); }
+        @Override public boolean addAll(Collection<? extends E> c) {
+            return removedItems.removeAll(c); }
 
         @Override public boolean removeAll(Collection<?> c) {
-            return ignoredItems.addAll(c);
+            return removedItems.addAll(c);
         }
 
         @Override public boolean retainAll(Collection<?> c) {
@@ -92,6 +92,6 @@ public class SimpleMatchSettings {
 
         @Override public void clear() {
             throw new UnsupportedOperationException(); }
-    };
+    }
 }
 
