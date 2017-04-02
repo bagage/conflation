@@ -24,6 +24,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.ExactValueMatcher;
@@ -153,7 +154,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
     private DefaultPromptTextField levenshteinTagsField = new DefaultPromptTextField(15, tr("none"));
     private JCheckBox identicalCheckBox = new JCheckBox("", true);
 
-    public AdvancedMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
+    public AdvancedMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList, Preferences pref) {
         super();
         filterByAreaTextArea.setFont(angleLabel.getFont().deriveFont(Font.ITALIC));
         unioningTextArea.setFont(angleLabel.getFont().deriveFont(Font.ITALIC));
@@ -161,7 +162,7 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
         jbInit();
         exactTagsField.setAutoCompletionList(referenceKeysAutocompletionList);
         levenshteinTagsField.setAutoCompletionList(referenceKeysAutocompletionList);
-        restoreFromPreferences();
+        restoreFromPreferences(pref);
     }
 
     public MyValidatingTextField getAngleBinField() {
@@ -654,73 +655,73 @@ public class AdvancedMatchFinderPanel extends MatchFinderPanel {
     }
 
     @Override
-    public void savePreferences() {
-        Main.pref.put(getClass().getName() + ".filterByAreaCheckBox", filterByAreaCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".filterByWindowCheckBox", filterByWindowCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".unionCheckBox", unionCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".stdDistanceCheckBox", stdDistanceCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".centroidCheckBox", centroidCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".hausdorffCheckBox", hausdorffCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".symDiffCheckBox", symDiffCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".symDiffCentroidsAlignedCheckBox", symDiffCentroidsAlignedCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".compactnessCheckBox", compactnessCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".angleCheckBox", angleCheckBox.isSelected());
-        Main.pref.put(getClass().getName() + ".levenshteinTagsCheckBox", levenshteinTagsCheckBox.isSelected());
-        Main.pref.putInteger(getClass().getName() + ".unionTextField", unionTextField.getInteger());
-        Main.pref.putInteger(getClass().getName() + ".angleBinField", angleBinField.getInteger());
-        Main.pref.putDouble(getClass().getName() + ".filterByAreaMinField", filterByAreaMinField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".filterByAreaMaxField", filterByAreaMaxField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".filterByWindowField", filterByWindowField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".stdDistanceWeightField", stdDistanceWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".stdDistanceThresholdField", stdDistanceThresholdField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".centroidDistanceWeightField", centroidDistanceWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".centroidThresholdField", centroidThresholdField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".hausdorffDistanceWeightField", hausdorffDistanceWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".symDiffWeightField", symDiffWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".symDiffCentroidsAlignedWeightField", symDiffCentroidsAlignedWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".compactnessWeightField", compactnessWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".angleWeightField", angleWeightField.getDouble());
-        Main.pref.putDouble(getClass().getName() + ".levenshteinTagsWeightField", levenshteinTagsWeightField.getDouble());
-        Main.pref.put(getClass().getName() + ".exactTagsField", exactTagsField.getText());
-        Main.pref.put(getClass().getName() + ".levenshteinTagsField", levenshteinTagsField.getText());
-        Main.pref.put(getClass().getName() + ".identicalCheckBox", identicalCheckBox.isSelected());
+    public void savePreferences(Preferences pref) {
+        pref.put(getClass().getName() + ".filterByAreaCheckBox", filterByAreaCheckBox.isSelected());
+        pref.put(getClass().getName() + ".filterByWindowCheckBox", filterByWindowCheckBox.isSelected());
+        pref.put(getClass().getName() + ".unionCheckBox", unionCheckBox.isSelected());
+        pref.put(getClass().getName() + ".stdDistanceCheckBox", stdDistanceCheckBox.isSelected());
+        pref.put(getClass().getName() + ".centroidCheckBox", centroidCheckBox.isSelected());
+        pref.put(getClass().getName() + ".hausdorffCheckBox", hausdorffCheckBox.isSelected());
+        pref.put(getClass().getName() + ".symDiffCheckBox", symDiffCheckBox.isSelected());
+        pref.put(getClass().getName() + ".symDiffCentroidsAlignedCheckBox", symDiffCentroidsAlignedCheckBox.isSelected());
+        pref.put(getClass().getName() + ".compactnessCheckBox", compactnessCheckBox.isSelected());
+        pref.put(getClass().getName() + ".angleCheckBox", angleCheckBox.isSelected());
+        pref.put(getClass().getName() + ".levenshteinTagsCheckBox", levenshteinTagsCheckBox.isSelected());
+        pref.putInteger(getClass().getName() + ".unionTextField", unionTextField.getInteger());
+        pref.putInteger(getClass().getName() + ".angleBinField", angleBinField.getInteger());
+        pref.putDouble(getClass().getName() + ".filterByAreaMinField", filterByAreaMinField.getDouble());
+        pref.putDouble(getClass().getName() + ".filterByAreaMaxField", filterByAreaMaxField.getDouble());
+        pref.putDouble(getClass().getName() + ".filterByWindowField", filterByWindowField.getDouble());
+        pref.putDouble(getClass().getName() + ".stdDistanceWeightField", stdDistanceWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".stdDistanceThresholdField", stdDistanceThresholdField.getDouble());
+        pref.putDouble(getClass().getName() + ".centroidDistanceWeightField", centroidDistanceWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".centroidThresholdField", centroidThresholdField.getDouble());
+        pref.putDouble(getClass().getName() + ".hausdorffDistanceWeightField", hausdorffDistanceWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".symDiffWeightField", symDiffWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".symDiffCentroidsAlignedWeightField", symDiffCentroidsAlignedWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".compactnessWeightField", compactnessWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".angleWeightField", angleWeightField.getDouble());
+        pref.putDouble(getClass().getName() + ".levenshteinTagsWeightField", levenshteinTagsWeightField.getDouble());
+        pref.put(getClass().getName() + ".exactTagsField", exactTagsField.getText());
+        pref.put(getClass().getName() + ".levenshteinTagsField", levenshteinTagsField.getText());
+        pref.put(getClass().getName() + ".identicalCheckBox", identicalCheckBox.isSelected());
     }
 
-    public void restoreFromPreferences() {
-        filterByAreaCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".filterByAreaCheckBox", true));
-        filterByWindowCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".filterByWindowCheckBox", true));
-        unionCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".unionCheckBox", false));
-        stdDistanceCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".stdDistanceCheckBox", true));
-        centroidCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".centroidCheckBox", true));
-        hausdorffCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".hausdorffCheckBox", true));
-        symDiffCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".symDiffCheckBox", true));
-        symDiffCentroidsAlignedCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".symDiffCentroidsAlignedCheckBox", true));
-        compactnessCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".compactnessCheckBox", true));
-        angleCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".angleCheckBox", true));
-        levenshteinTagsCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".levenshteinTagsCheckBox", true));
-        unionTextField.setText("" + Integer.max(2, Main.pref.getInteger(getClass().getName() + ".unionTextField", 2)));
-        angleBinField.setText("" +Integer.max(2, Main.pref.getInteger(getClass().getName() + ".angleBinField", 18)));
-        filterByAreaMinField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByAreaMinField", 0.0)));
-        filterByAreaMaxField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByAreaMaxField", 9E6)));
-        filterByWindowField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".filterByWindowField", 50.0)));
+    public void restoreFromPreferences(Preferences pref) {
+        filterByAreaCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".filterByAreaCheckBox", true));
+        filterByWindowCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".filterByWindowCheckBox", true));
+        unionCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".unionCheckBox", false));
+        stdDistanceCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".stdDistanceCheckBox", true));
+        centroidCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".centroidCheckBox", true));
+        hausdorffCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".hausdorffCheckBox", true));
+        symDiffCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".symDiffCheckBox", true));
+        symDiffCentroidsAlignedCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".symDiffCentroidsAlignedCheckBox", true));
+        compactnessCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".compactnessCheckBox", true));
+        angleCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".angleCheckBox", true));
+        levenshteinTagsCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".levenshteinTagsCheckBox", true));
+        unionTextField.setText("" + Integer.max(2, pref.getInteger(getClass().getName() + ".unionTextField", 2)));
+        angleBinField.setText("" +Integer.max(2, pref.getInteger(getClass().getName() + ".angleBinField", 18)));
+        filterByAreaMinField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".filterByAreaMinField", 0.0)));
+        filterByAreaMaxField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".filterByAreaMaxField", 9E6)));
+        filterByWindowField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".filterByWindowField", 50.0)));
         stdDistanceWeightField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".stdDistanceWeightField", 10.0)));
-        stdDistanceThresholdField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".stdDistanceThresholdField", 50.0)));
+                pref.getDouble(getClass().getName() + ".stdDistanceWeightField", 10.0)));
+        stdDistanceThresholdField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".stdDistanceThresholdField", 50.0)));
         centroidDistanceWeightField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".centroidDistanceWeightField", 10.0)));
-        centroidThresholdField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".centroidThresholdField", 50.0)));
+                pref.getDouble(getClass().getName() + ".centroidDistanceWeightField", 10.0)));
+        centroidThresholdField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".centroidThresholdField", 50.0)));
         hausdorffDistanceWeightField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".hausdorffDistanceWeightField", 10.0)));
-        symDiffWeightField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".symDiffWeightField", 10.0)));
+                pref.getDouble(getClass().getName() + ".hausdorffDistanceWeightField", 10.0)));
+        symDiffWeightField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".symDiffWeightField", 10.0)));
         symDiffCentroidsAlignedWeightField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".symDiffCentroidsAlignedWeightField", 10.0)));
-        compactnessWeightField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".compactnessWeightField", 10.0)));
-        angleWeightField.setText("" + Double.max(0.0, Main.pref.getDouble(getClass().getName() + ".angleWeightField", 10.0)));
+                pref.getDouble(getClass().getName() + ".symDiffCentroidsAlignedWeightField", 10.0)));
+        compactnessWeightField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".compactnessWeightField", 10.0)));
+        angleWeightField.setText("" + Double.max(0.0, pref.getDouble(getClass().getName() + ".angleWeightField", 10.0)));
         levenshteinTagsWeightField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".levenshteinTagsWeightField", 50.0)));
-        exactTagsField.setText(Main.pref.get(getClass().getName() + ".exactTagsField", ""));
-        levenshteinTagsField.setText(Main.pref.get(getClass().getName() + ".levenshteinTagsField", ""));
-        identicalCheckBox.setSelected(Main.pref.getBoolean(getClass().getName() + ".identicalCheckBox", false));
+                pref.getDouble(getClass().getName() + ".levenshteinTagsWeightField", 50.0)));
+        exactTagsField.setText(pref.get(getClass().getName() + ".exactTagsField", ""));
+        levenshteinTagsField.setText(pref.get(getClass().getName() + ".levenshteinTagsField", ""));
+        identicalCheckBox.setSelected(pref.getBoolean(getClass().getName() + ".identicalCheckBox", false));
 
     }
 

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' upload='true' generator='JOSM'>
+  <bounds minlat='45.1659117' minlon='4.955931' maxlat='45.1661254' maxlon='4.9561912' origin='CGImap 0.5.8 (15648 thorn-01.openstreetmap.org)' />
+  <node id='-38277' action='modify' visible='true' lat='45.16609046384' lon='4.95603607051' />
+  <node id='-38279' action='modify' visible='true' lat='45.16601216385' lon='4.95603437051' />
+  <node id='-38287' action='modify' visible='true' lat='45.16600866385' lon='4.95610917051' />
+  <node id='-38289' action='modify' visible='true' lat='45.16601096385' lon='4.95613177051' />
+  <node id='-38291' action='modify' visible='true' lat='45.16608816384' lon='4.95613557051' />
+  <node id='1587284260' action='modify' timestamp='2012-01-12T18:13:23Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.16593546387' lon='4.95610977051' />
+  <node id='1587284261' action='modify' timestamp='2012-01-12T18:13:23Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.16593526387' lon='4.95598567051' />
+  <node id='1587284288' action='delete' timestamp='2012-01-12T18:13:25Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660205' lon='4.9561385' />
+  <node id='1587284289' action='delete' timestamp='2012-01-12T18:13:25Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.166021' lon='4.9561237' />
+  <node id='1587284293' action='modify' timestamp='2012-01-12T18:13:26Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.16601036385' lon='4.95598827051' />
+  <node id='1587284296' action='delete' timestamp='2012-01-12T18:13:26Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660243' lon='4.9560393' />
+  <node id='1587284319' action='delete' timestamp='2012-01-12T18:13:28Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660923' lon='4.9561399' />
+  <node id='1587284322' action='delete' timestamp='2012-01-12T18:13:28Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660933' lon='4.9560393' />
+  <way id='145307934' action='modify' timestamp='2012-02-04T16:44:08Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='2' changeset='10586094'>
+    <nd ref='-38277' />
+    <nd ref='-38279' />
+    <nd ref='1587284293' />
+    <nd ref='1587284261' />
+    <nd ref='1587284260' />
+    <nd ref='-38287' />
+    <nd ref='-38289' />
+    <nd ref='-38291' />
+    <nd ref='-38277' />
+    <tag k='building' v='yes' />
+    <tag k='reference' v='yes' />
+    <tag k='source' v='cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2017' />
+  </way>
+  <way id='145307961' action='delete' timestamp='2012-02-04T16:44:08Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='2' changeset='10586094'>
+    <tag k='building' v='yes' />
+  </way>
+</osm>

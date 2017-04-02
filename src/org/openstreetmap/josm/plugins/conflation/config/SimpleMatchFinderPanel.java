@@ -14,7 +14,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.LayoutStyle;
 
-import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.gui.tagging.ac.AutoCompletionList;
 import org.openstreetmap.josm.plugins.conflation.matcher.AttributeMatcher;
 import org.openstreetmap.josm.plugins.conflation.matcher.LevenshteinDistanceValueMatcher;
@@ -29,7 +29,6 @@ import com.vividsolutions.jcs.conflate.polygonmatch.DisambiguatingFCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.FeatureMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.HausdorffDistanceMatcher;
-import com.vividsolutions.jcs.conflate.polygonmatch.IdenticalFeatureFilter;
 import com.vividsolutions.jcs.conflate.polygonmatch.OneToOneFCMatchFinder;
 import com.vividsolutions.jcs.conflate.polygonmatch.WeightedMatcher;
 import com.vividsolutions.jcs.conflate.polygonmatch.WindowMatcher;
@@ -51,7 +50,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
     private final JLabel tagsLabel = new JLabel(tr("Tags"));
     private final DefaultPromptTextField tagsField = new DefaultPromptTextField(20, tr("none"));
 
-    public SimpleMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList) {
+    public SimpleMatchFinderPanel(AutoCompletionList referenceKeysAutocompletionList, Preferences pref) {
         super();
         threshDistanceField.setToolTipText(tr("Maximum Distance"));
         tagsField.setToolTipText(tr("List of tags to match (default: none)"));
@@ -94,7 +93,7 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
                         .addComponent(tagsLabel)
                         .addComponent(tagsField))
              );
-        restoreFromPreferences();
+        restoreFromPreferences(pref);
     }
 
     @Override
@@ -135,22 +134,22 @@ public class SimpleMatchFinderPanel extends MatchFinderPanel {
         return Stream.of(values.trim().split("[\\s,;]+")).filter((s) -> !s.isEmpty()).collect(Collectors.toList());
     }
 
-    public void restoreFromPreferences() {
+    public void restoreFromPreferences(Preferences pref) {
         methodCombeBox.setSelectedIndex(Integer.max(0, Integer.min(methodCombeBox.getItemCount()-1,
-                Main.pref.getInteger(getClass().getName() + ".methodIndex", 0))));
+                pref.getInteger(getClass().getName() + ".methodIndex", 0))));
         distanceComboBox.setSelectedIndex(Integer.max(0, Integer.min(distanceComboBox.getItemCount()-1,
-                Main.pref.getInteger(getClass().getName() + ".distanceIndex", 1))));
+                pref.getInteger(getClass().getName() + ".distanceIndex", 1))));
         threshDistanceField.setText("" + Double.max(0.0,
-                Main.pref.getDouble(getClass().getName() + ".thresholdDistance", DEFAULT_DISTANCE_THRESHOLD)));
-        tagsField.setText(Main.pref.get(getClass().getName() + ".tags", ""));
+                pref.getDouble(getClass().getName() + ".thresholdDistance", DEFAULT_DISTANCE_THRESHOLD)));
+        tagsField.setText(pref.get(getClass().getName() + ".tags", ""));
     }
 
     @Override
-    public void savePreferences() {
-        Main.pref.putInteger(getClass().getName() + ".methodIndex", methodCombeBox.getSelectedIndex());
-        Main.pref.putInteger(getClass().getName() + ".distanceIndex", distanceComboBox.getSelectedIndex());
-        Main.pref.putDouble(getClass().getName() + ".thresholdDistance", threshDistanceField.getDouble());
-        Main.pref.put(getClass().getName() + ".tags", tagsField.getText());
+    public void savePreferences(Preferences pref) {
+        pref.putInteger(getClass().getName() + ".methodIndex", methodCombeBox.getSelectedIndex());
+        pref.putInteger(getClass().getName() + ".distanceIndex", distanceComboBox.getSelectedIndex());
+        pref.putDouble(getClass().getName() + ".thresholdDistance", threshDistanceField.getDouble());
+        pref.put(getClass().getName() + ".tags", tagsField.getText());
     }
 
 }

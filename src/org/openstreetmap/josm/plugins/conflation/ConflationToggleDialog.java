@@ -49,6 +49,7 @@ import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.AutoScaleAction;
 import org.openstreetmap.josm.actions.JosmAction;
 import org.openstreetmap.josm.command.Command;
+import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.data.SelectionChangedListener;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
@@ -112,13 +113,13 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
     private final HashMap<OsmPrimitive, SimpleMatch> primitivesRemovedMatchByReference = new HashMap<>();
     private final HashMap<OsmPrimitive, SimpleMatch> primitivesRemovedMatchBySubject = new HashMap<>();
 
-    public ConflationToggleDialog(ConflationPlugin conflationPlugin) {
+    public ConflationToggleDialog(ConflationPlugin conflationPlugin, Preferences pref) {
         // TODO: create shortcut?
         super(TITLE_PREFIX, "conflation.png", tr("Activates the conflation plugin"),
                 null, 150);
 
         if (!GraphicsEnvironment.isHeadless()) {
-            settingsDialog = new SettingsDialog();
+            settingsDialog = new SettingsDialog(pref);
             settingsDialog.setModalityType(Dialog.ModalityType.MODELESS);
             settingsDialog.addWindowListener(new WindowAdapter() {
 
@@ -128,7 +129,7 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
                     if (settingsDialog.getValue() == 1) {
                         clear(true, true, false);
                         settings = settingsDialog.getSettings();
-                        settingsDialog.savePreferences();
+                        settingsDialog.savePreferences(pref);
                         performMatching();
                     }
                 }
@@ -670,22 +671,34 @@ implements SelectionChangedListener, DataSetListener, SimpleMatchListListener, L
         }
 
         private SimpleMatch nextMatchSelection;
-        private HashSet<SimpleMatch> oldMatchesSelection;
+        private HashSet<SimpleMatch> oldMatchesSelection = new HashSet<>();
+        private HashSet<OsmPrimitive> oldReferenceOnlySelection = new HashSet<>();
+        private HashSet<OsmPrimitive> oldSubjectOnlySelection = new HashSet<>();
 
         private void saveSelection() {
             nextMatchSelection = getNextMatchToSelect();
-            oldMatchesSelection = new HashSet<>(getSelectedMatches());
+            oldMatchesSelection.addAll(getSelectedMatches());
+            oldReferenceOnlySelection.addAll(referenceOnlyList.getSelectedValuesList());
+            oldSubjectOnlySelection.addAll(subjectOnlyList.getSelectedValuesList());
         }
 
         private void restoreSelection() {
             select(matchTable.getSelectionModel(), matches.size(),
                     (i) -> oldMatchesSelection.contains(matches.get(matchTable.convertRowIndexToModel(i))));
+            select(referenceOnlyList.getSelectionModel(), referenceOnlyListModel.getSize(),
+                    (i) -> oldReferenceOnlySelection.contains(referenceOnlyListModel.getElementAt(i)));
+            select(subjectOnlyList.getSelectionModel(), subjectOnlyListModel.getSize(),
+                    (i) -> oldSubjectOnlySelection.contains(subjectOnlyListModel.getElementAt(i)));
             if ((matchTable.getSelectedRow() < 0) && nextMatchSelection != null) {
                 // If there is no match selected, we select a new one
                 int index = matchTable.convertRowIndexToView(matches.indexOf(nextMatchSelection));
                 matchTable.setRowSelectionInterval(index, index);
             }
-        }
+            nextMatchSelection = null;
+            oldMatchesSelection.clear();
+            oldReferenceOnlySelection.clear();
+            oldSubjectOnlySelection.clear();
+       }
     }
 
     class RemoveAction extends BatchAction implements ChangeListener, ListSelectionListener {

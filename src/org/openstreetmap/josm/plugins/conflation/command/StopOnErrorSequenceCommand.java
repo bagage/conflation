@@ -124,7 +124,7 @@ public class StopOnErrorSequenceCommand extends Command {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), Arrays.hashCode(sequence), nbToExecute, name);
+        return Objects.hash(super.hashCode(), Arrays.hashCode(sequence), nbToExecute, selection != null, fireSelectionChangedEvent, name);
     }
 
     @Override
@@ -134,6 +134,8 @@ public class StopOnErrorSequenceCommand extends Command {
         if (!super.equals(obj)) return false;
         StopOnErrorSequenceCommand that = (StopOnErrorSequenceCommand) obj;
         return nbToExecute == that.nbToExecute &&
+                fireSelectionChangedEvent == that.fireSelectionChangedEvent &&
+                (selection != null) == (that.selection != null) &&
                 Arrays.equals(sequence, that.sequence) &&
                 Objects.equals(name, that.name);
     }

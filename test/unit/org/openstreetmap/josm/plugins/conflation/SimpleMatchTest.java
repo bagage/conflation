@@ -16,7 +16,7 @@ public class SimpleMatchTest {
     public void testGetMergingTagCollectionOverwrite() {
         SimpleMatchSettings settings = new SimpleMatchSettings();
         settings.isReplacingGeometry = true;
-        settings.mergeTags = SimpleMatchSettings.ALL;
+        settings.mergeTags = new SimpleMatchSettings.All<>();
         settings.overwriteTags = Arrays.asList("addr:housenumber");
         OsmPrimitive n1 = new Node();
         OsmPrimitive n2 = new Node();

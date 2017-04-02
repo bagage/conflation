@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' upload='true' generator='JOSM'>
+  <bounds minlat='45.1659117' minlon='4.955931' maxlat='45.1661254' maxlon='4.9561912' origin='CGImap 0.5.8 (15648 thorn-01.openstreetmap.org)' />
+  <node id='1587284260' timestamp='2012-01-12T18:13:23Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1659419' lon='4.9561222' />
+  <node id='1587284261' timestamp='2012-01-12T18:13:23Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1659438' lon='4.9559972' />
+  <node id='1587284288' timestamp='2012-01-12T18:13:25Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660205' lon='4.9561385' />
+  <node id='1587284289' timestamp='2012-01-12T18:13:25Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.166021' lon='4.9561237' />
+  <node id='1587284293' timestamp='2012-01-12T18:13:26Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660233' lon='4.9560013' />
+  <node id='1587284296' timestamp='2012-01-12T18:13:26Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660243' lon='4.9560393' />
+  <node id='1587284319' timestamp='2012-01-12T18:13:28Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660923' lon='4.9561399' />
+  <node id='1587284322' timestamp='2012-01-12T18:13:28Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='1' changeset='10371093' lat='45.1660933' lon='4.9560393' />
+  <way id='145307934' timestamp='2012-02-04T16:44:08Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='2' changeset='10586094'>
+    <nd ref='1587284296' />
+    <nd ref='1587284293' />
+    <nd ref='1587284261' />
+    <nd ref='1587284260' />
+    <nd ref='1587284289' />
+    <nd ref='1587284296' />
+    <tag k='building' v='yes' />
+  </way>
+  <way id='145307961' timestamp='2012-02-04T16:44:08Z' uid='578554' user='Frédéric de Flaugergues' visible='true' version='2' changeset='10586094'>
+    <nd ref='1587284322' />
+    <nd ref='1587284319' />
+    <nd ref='1587284288' />
+    <nd ref='1587284289' />
+    <nd ref='1587284296' />
+    <nd ref='1587284322' />
+    <tag k='building' v='yes' />
+  </way>
+</osm>
