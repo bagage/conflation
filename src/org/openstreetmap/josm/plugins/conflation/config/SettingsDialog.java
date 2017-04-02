@@ -733,6 +733,7 @@ public class SettingsDialog extends ExtendedDialog {
                     JOptionPane.ERROR_MESSAGE);
         }
         updateFreezeButtons();
+        this.pack();
     }
 
     public void updateFreezeButtons() {
