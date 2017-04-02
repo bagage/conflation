@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' upload='true' generator='JOSM'>
+  <node id='-288048' action='modify' visible='true' lat='45.16609046384' lon='4.95603607051' />
+  <node id='-288050' action='modify' visible='true' lat='45.16601216385' lon='4.95603437051' />
+  <node id='-288052' action='modify' visible='true' lat='45.16601036385' lon='4.95598827051' />
+  <node id='-288054' action='modify' visible='true' lat='45.16593526387' lon='4.95598567051' />
+  <node id='-288056' action='modify' visible='true' lat='45.16593546387' lon='4.95610977051' />
+  <node id='-288058' action='modify' visible='true' lat='45.16600866385' lon='4.95610917051' />
+  <node id='-288060' action='modify' visible='true' lat='45.16601096385' lon='4.95613177051' />
+  <node id='-288062' action='modify' visible='true' lat='45.16608816384' lon='4.95613557051' />
+  <way id='-288064' action='modify' visible='true'>
+    <nd ref='-288048' />
+    <nd ref='-288050' />
+    <nd ref='-288052' />
+    <nd ref='-288054' />
+    <nd ref='-288056' />
+    <nd ref='-288058' />
+    <nd ref='-288060' />
+    <nd ref='-288062' />
+    <nd ref='-288048' />
+    <tag k='building' v='yes' />
+    <tag k='reference' v='yes' />
+    <tag k='source' v='cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2017' />
+  </way>
+</osm>

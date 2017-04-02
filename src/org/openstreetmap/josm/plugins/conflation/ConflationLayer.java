@@ -35,10 +35,10 @@ public class ConflationLayer extends Layer {
     protected SimpleMatchList matches;
     protected IntPredicate isMatchSelected;;
 
-    public ConflationLayer(SimpleMatchList matches, IntPredicate isMatchelected) {
+    public ConflationLayer(SimpleMatchList matches, IntPredicate isMatchSelected) {
         super(tr("Conflation"));
         this.matches = matches;
-        this.isMatchSelected = isMatchelected;
+        this.isMatchSelected = isMatchSelected;
     }
 
     /**

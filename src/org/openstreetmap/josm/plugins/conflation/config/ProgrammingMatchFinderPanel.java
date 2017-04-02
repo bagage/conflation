@@ -11,6 +11,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.plugins.conflation.config.parser.InstanceConstructor;
 import org.openstreetmap.josm.plugins.conflation.config.parser.InstanceEditor;
 
@@ -58,14 +59,14 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
             "\t\t\t\t\tIdenticalFilter\n" +
             ")))))";
 
-    public ProgrammingMatchFinderPanel() {
+    public ProgrammingMatchFinderPanel(Preferences pref) {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
         editorPanel = new InstanceEditor<>(FCMatchFinder.class, "Match Finder", jcsConstructors, 8, 70);
         this.add(editorPanel);
 
         this.add(createExampleButtonPanel());
-        restoreFromPreferences();
+        restoreFromPreferences(pref);
     }
 
     private JPanel createExampleButtonPanel() {
@@ -94,13 +95,13 @@ public final class ProgrammingMatchFinderPanel extends MatchFinderPanel {
         return editorPanel.getEditedInstance();
     }
 
-    public void restoreFromPreferences() {
-        editorPanel.getTextArea().setText(Main.pref.get(getClass().getName() + ".expression", SIMPLE_EXAMPLE));
+    public void restoreFromPreferences(Preferences pref) {
+        editorPanel.getTextArea().setText(pref.get(getClass().getName() + ".expression", SIMPLE_EXAMPLE));
     }
 
     @Override
-    public void savePreferences() {
-        Main.pref.put(getClass().getName() + ".expression", editorPanel.getTextArea().getText());
+    public void savePreferences(Preferences pref) {
+        pref.put(getClass().getName() + ".expression", editorPanel.getTextArea().getText());
     }
 
 
