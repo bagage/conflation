@@ -4,6 +4,7 @@ package org.openstreetmap.josm.plugins.conflation;
 
 import com.vividsolutions.jcs.conflate.polygonmatch.FCMatchFinder;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -45,9 +46,11 @@ public class SimpleMatchSettings {
 
 
     /**
-     * A Collection that always answer true when asked if it contains any object.
+     * A Collection that always answer true when asked if it contains any object (except for the removed items!).
      */
     public static final Collection<String> ALL = new Collection<String>() {
+        List<Object> ignoredItems = new ArrayList<>();
+
         @Override public int size() {
             return Integer.MAX_VALUE; }
 
@@ -55,10 +58,10 @@ public class SimpleMatchSettings {
             return false; }
 
         @Override public boolean contains(Object o) {
-            return true; }
+            return !ignoredItems.contains(o); }
 
         @Override public boolean containsAll(Collection<?> c) {
-            return true; }
+            return !ignoredItems.containsAll(c); }
 
         @Override public Iterator<String> iterator() {
             throw new UnsupportedOperationException(); }
@@ -73,13 +76,16 @@ public class SimpleMatchSettings {
             throw new UnsupportedOperationException(); }
 
         @Override public boolean remove(Object o) {
-            throw new UnsupportedOperationException(); }
+            ignoredItems.add((String)o);
+            return true;
+        }
 
         @Override public boolean addAll(Collection<? extends String> c) {
             throw new UnsupportedOperationException(); }
 
         @Override public boolean removeAll(Collection<?> c) {
-            throw new UnsupportedOperationException(); }
+            return ignoredItems.addAll(c);
+        }
 
         @Override public boolean retainAll(Collection<?> c) {
             throw new UnsupportedOperationException(); }
