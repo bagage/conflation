@@ -12,9 +12,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Stream;
 
+import java.util.HashSet;
 import javax.swing.Icon;
 import javax.swing.JOptionPane;
 
+import org.openstreetmap.josm.actions.AutoScaleAction;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.command.AddPrimitivesCommand;
 import org.openstreetmap.josm.command.ChangePropertyCommand;
@@ -196,6 +198,10 @@ public class ConflateMatchCommand extends Command {
         try {
             command = ReplaceGeometryUtils.buildReplaceCommand(subjectObject, referenceObject);
         } catch (ReplaceGeometryException ex) {
+            Collection<OsmPrimitive> problem = new HashSet<>();
+            problem.add(subjectObject);
+            problem.add(referenceObject);
+            AutoScaleAction.zoomTo(problem);
             JOptionPane.showMessageDialog(Main.parent,
                     ex.getMessage(), tr("Cannot replace geometry."), JOptionPane.INFORMATION_MESSAGE);
         } finally {
