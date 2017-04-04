@@ -47,15 +47,17 @@ public class MergingPanel extends JPanel {
         replaceGeometryCheckBox = new JCheckBox(tr("Replace Geometry"));
         mergeTagsCheckBox = new JCheckBox(tr("Merge Tags"));
         mergeAllCheckBox = new JCheckBox(tr("All"));
-        mergeTagsField = new DefaultPromptTextField(20, tr("List of tags to merge"));
+        mergeTagsField = new DefaultPromptTextField(20, tr("all"));
+        mergeTagsField.setToolTipText(tr("List of tags to merge"));
         mergeTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
         mergeTagsExceptLabel = new JLabel(tr("except"));
-        mergeTagsExceptField = new DefaultPromptTextField(20, tr("List of tags to NOT merge"));
+        mergeTagsExceptField = new DefaultPromptTextField(20, tr("none"));
+        mergeTagsExceptField.setToolTipText(tr("List of tags to NOT merge (they will be ignored)"));
         mergeTagsExceptField.setAutoCompletionList(referenceTagsAutoCompletionList);
         if (ExpertToggleAction.isExpert()) {
             overwriteTagsCheckbox = new JCheckBox(tr("Overwrite tags without confirmation"));
             overwriteTagsField = new DefaultPromptTextField(20, tr("none"));
-            overwriteTagsField.setToolTipText(tr("List of tags to overwrite without confirmation"));
+            overwriteTagsField.setToolTipText(tr("List of tags to overwrite on conflict using reference layer without confirmation"));
             overwriteTagsField.setAutoCompletionList(referenceTagsAutoCompletionList);
             overwriteTagsCheckbox.addActionListener(new ActionListener() {
                 @Override
@@ -67,11 +69,12 @@ public class MergingPanel extends JPanel {
         mergeTagsCheckBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mergeAllCheckBox.setEnabled(mergeTagsCheckBox.isSelected());
-                mergeTagsField.setEnabled(mergeTagsCheckBox.isSelected());
-                mergeTagsExceptLabel.setEnabled(mergeTagsCheckBox.isSelected());
-                mergeTagsExceptField.setEnabled(mergeTagsCheckBox.isSelected());
-                if (mergeTagsCheckBox.isSelected()) {
+                boolean enable = mergeTagsCheckBox.isSelected();
+                mergeAllCheckBox.setEnabled(enable);
+                mergeTagsField.setEnabled(enable);
+                mergeTagsExceptLabel.setEnabled(enable);
+                mergeTagsExceptField.setEnabled(enable);
+                if (enable) {
                     mergeTagsField.setText("");
                     mergeTagsExceptField.setText("");
                     mergeAllCheckBox.setSelected(true);
