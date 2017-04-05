@@ -10,7 +10,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.plugins.conflation.config.parser.InstanceConstructor;
 import org.openstreetmap.josm.plugins.conflation.config.parser.InstanceEditor;
