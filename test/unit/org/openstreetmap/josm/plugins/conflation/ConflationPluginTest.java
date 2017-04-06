@@ -18,7 +18,9 @@ import java.util.stream.Collectors;
 import javax.xml.stream.XMLStreamException;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
+import org.junit.Test;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.ExpertToggleAction;
 import org.openstreetmap.josm.command.Command;
@@ -48,7 +50,8 @@ public class ConflationPluginTest {
     
     static String[] testList = new String[]{"test1-buildings"};
         
-    //@Test FIXME: restore test when @{link #compare} method will be fixed
+    @Test
+    @Ignore("FIXME: restore test when @{link #compare} method will be fixed")
     public void testConflationPlugin() throws FileNotFoundException, XMLStreamException, IOException, IllegalDataException {
         for (String testName: testList) {
             assertTrue(testName, testCase(testName));
