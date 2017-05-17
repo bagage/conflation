@@ -201,9 +201,11 @@ public class ConflateMatchCommand extends Command {
         TagMap savedReferenceTags = saveAndRemoveTagsNotInCollection(referenceObject, tagCollection);
         TagMap savedSubjectTags = saveAndRemoveTagsNotInCollection(subjectObject, tagCollection);
         Command command = null;
+        System.out.println("buildReplaceGeometryCommand: nb of nodes: " + ((Way)subjectObject).getNodes().size());
         try {
             if (subjectObject instanceof Way) {
                 for (Node n : ((Way)subjectObject).getNodes()) {
+                    System.out.println(n + " is connectionnode? " + n.isConnectionNode());
 
                     boolean mustShow = true;
                     boolean mustUnglue = false;
@@ -211,21 +213,26 @@ public class ConflateMatchCommand extends Command {
                         mustUnglue |= (kv.getKey().equals("addr:housenumber"));
                         mustUnglue |= (kv.getKey().equals("entrance"));
                         mustShow = false;
+                        System.out.println("\t" + kv.getKey() + "=" + kv.getValue());
                     }
 
                     for (OsmPrimitive o : n.getReferrers()) {
+                        System.out.println("\t\t" + "referrer: " + o);
                         if (o instanceof Relation) {
                             mustUnglue = true;
                         }
                     }
 
                     if (mustUnglue) {
+                        System.out.println("\twill try unglueing…");
                         List<OsmPrimitive> list = new ArrayList<>();
                         list.add(n);
                         AutoScaleAction.zoomTo(list);
                         //try unglueing
                         try {
+                            System.out.println("\t" + (Main.main.menu.unglueNodes.unglue2(null, list, mustShow) ? "have unglued!" : "failed unglueing"));
                         } catch (UserCancelException e) {
+                            System.out.println("\tcannot ungule: " + e.getMessage());
                         }
                     }
                 }
