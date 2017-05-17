@@ -15,7 +15,9 @@ import java.util.stream.Stream;
 import java.util.HashSet;
 import javax.swing.Icon;
 import javax.swing.JOptionPane;
+import java.util.Map;
 
+import org.openstreetmap.josm.gui.MainMenu;
 import org.openstreetmap.josm.actions.AutoScaleAction;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.command.AddPrimitivesCommand;
@@ -40,6 +42,10 @@ import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeomet
 import org.openstreetmap.josm.plugins.utilsplugin2.replacegeometry.ReplaceGeometryUtils;
 import org.openstreetmap.josm.tools.ImageProvider;
 import org.openstreetmap.josm.tools.UserCancelException;
+
+import org.openstreetmap.josm.data.osm.Node;
+import org.openstreetmap.josm.data.osm.Way;
+import org.openstreetmap.josm.actions.UnGlueAction;
 
 
 /**
@@ -196,6 +202,34 @@ public class ConflateMatchCommand extends Command {
         TagMap savedSubjectTags = saveAndRemoveTagsNotInCollection(subjectObject, tagCollection);
         Command command = null;
         try {
+            if (subjectObject instanceof Way) {
+                for (Node n : ((Way)subjectObject).getNodes()) {
+
+                    boolean mustShow = true;
+                    boolean mustUnglue = false;
+                    for (Map.Entry<String, String> kv : n.getInterestingTags().entrySet()) {
+                        mustUnglue |= (kv.getKey().equals("addr:housenumber"));
+                        mustUnglue |= (kv.getKey().equals("entrance"));
+                        mustShow = false;
+                    }
+
+                    for (OsmPrimitive o : n.getReferrers()) {
+                        if (o instanceof Relation) {
+                            mustUnglue = true;
+                        }
+                    }
+
+                    if (mustUnglue) {
+                        List<OsmPrimitive> list = new ArrayList<>();
+                        list.add(n);
+                        AutoScaleAction.zoomTo(list);
+                        //try unglueing
+                        // try {
+                        // } catch (UserCancelException e) {
+                        // }
+                    }
+                }
+            }
             command = ReplaceGeometryUtils.buildReplaceCommand(subjectObject, referenceObject);
         } catch (ReplaceGeometryException ex) {
             Collection<OsmPrimitive> problem = new HashSet<>();
